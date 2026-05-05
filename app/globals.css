@@ -29,6 +29,7 @@ body {
 
 a {
   color: inherit;
+  text-decoration: none;
 }
 
 button,
@@ -158,6 +159,79 @@ h1 {
 .secondary-button {
   background: var(--panel-strong);
   color: var(--ink);
+}
+
+.results-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  max-width: 760px;
+}
+
+.results-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 8px 2px;
+}
+
+.results-heading strong {
+  font-size: 18px;
+}
+
+.results-heading span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.result-card,
+.empty-state {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.result-card {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 22px 1fr;
+  padding: 14px;
+}
+
+.result-card svg {
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.result-card strong,
+.result-card span {
+  display: block;
+}
+
+.result-card span {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.result-card p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.empty-state {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+}
+
+.empty-state span {
+  color: var(--muted);
 }
 
 .map-preview {
