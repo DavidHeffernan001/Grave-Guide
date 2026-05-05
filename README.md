@@ -41,6 +41,7 @@ Run the migrations in order:
 1. `supabase/migrations/001_initial_graveguide_schema.sql`
 2. `supabase/migrations/002_seed_sligo_town_cemetery.sql`
 3. `supabase/migrations/003_memorial_photo_storage.sql`
+4. `supabase/migrations/004_seed_sample_burial_record.sql`
 
 More detail is in `docs/supabase-setup.md`.
 
