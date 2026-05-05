@@ -45,6 +45,8 @@ Run the migrations in order:
 
 More detail is in `docs/supabase-setup.md`.
 
+Deployment refresh.
+
 ## Deployment
 
 Deploy as a Next.js project on Vercel. Use `graveguide.ie` as the primary domain and redirect the `.co.uk` domains to it.
