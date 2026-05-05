@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Landmark, MapPin, Search, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarDays, Landmark, MapPin, Route, Search, ShieldCheck, UserRound } from "lucide-react";
+import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords } from "@/lib/prototype-data";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
 
 type SearchParams = {
@@ -122,7 +123,9 @@ export default async function Home({
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
   const results = await searchGraveGuide(query);
+  const prototypeMatches = searchPrototypeRecords(query);
   const searched = query.length > 0;
+  const highlightedPlotIds = new Set(prototypeMatches.map((record) => record.plotId));
 
   return (
     <main className="page">
@@ -144,7 +147,7 @@ export default async function Home({
         <div className="hero-copy">
           <p className="eyebrow">Irish cemetery records, mapped carefully</p>
           <h1>Find a grave, trace a family, walk the route.</h1>
-          <p className="lede">Search cemetery records, plot references, and mapped locations.</p>
+          <p className="lede">Search records, preview grave locations, and follow a map-first visitor flow.</p>
 
           <form className="search-band" action="/">
             <div className="search-row">
@@ -171,12 +174,12 @@ export default async function Home({
                 <strong>Try a search to begin.</strong>
                 <span>Sligo, Block A, and A-001 are seeded already.</span>
               </div>
-            ) : hasResults(results) ? (
+            ) : hasResults(results) || prototypeMatches.length > 0 ? (
               <>
                 <div className="results-heading">
                   <strong>Results for &quot;{query}&quot;</strong>
                   <span>
-                    {results.cemeteries.length + results.plots.length + results.people.length} matches
+                    {results.cemeteries.length + results.plots.length + results.people.length + prototypeMatches.length} matches
                   </span>
                 </div>
 
@@ -221,6 +224,19 @@ export default async function Home({
                     </div>
                   </article>
                 ))}
+
+                {prototypeMatches.map((record) => (
+                  <article className="result-card" key={record.id}>
+                    <Route size={18} aria-hidden="true" />
+                    <div>
+                      <strong>{record.fullName}</strong>
+                      <span>
+                        {record.plotId} / Block {record.blockId}
+                      </span>
+                      <p>Prototype map record from the Sligo Town Cemetery demo data. Dates: {record.dates}.</p>
+                    </div>
+                  </article>
+                ))}
               </>
             ) : (
               <div className="empty-state">
@@ -231,15 +247,48 @@ export default async function Home({
           </section>
         </div>
 
-        <div className="map-preview" id="map" aria-label="Cemetery map preview">
-          <div className="path" />
-          <div className="plot one" />
-          <div className="plot two" />
-          <div className="plot three" />
-          <div className="plot four" />
+        <div className="map-preview" id="map" aria-label="Sligo Town Cemetery map preview">
+          <div className="map-path main" />
+          <div className="map-path diagonal" />
+
+          {prototypeBlocks.map((block) => (
+            <div
+              className="cemetery-block"
+              key={block.id}
+              style={{
+                left: `${block.x - 25}%`,
+                top: `${block.y + 5}%`,
+                width: `${block.width}%`,
+                height: `${block.height}%`,
+                transform: `rotate(${block.rotate}deg)`
+              }}
+            >
+              <span>{block.id}</span>
+            </div>
+          ))}
+
+          {prototypeEntrances.map((entrance) => (
+            <div className="entrance-pin" key={entrance.id} style={{ left: `${entrance.x}%`, top: `${entrance.y}%` }}>
+              <span>{entrance.name}</span>
+            </div>
+          ))}
+
+          {prototypeRecords.map((record) => (
+            <a
+              aria-label={`${record.fullName}, ${record.plotId}`}
+              className={highlightedPlotIds.has(record.plotId) ? "grave-dot highlighted" : "grave-dot"}
+              href={`/?q=${encodeURIComponent(record.fullName)}`}
+              key={record.id}
+              style={{ left: `${record.x}%`, top: `${record.y}%` }}
+              title={`${record.fullName} - ${record.plotId}`}
+            />
+          ))}
+
+          <div className="route-preview-line" />
+
           <div className="map-label">
-            <strong>Plot mapping ready</strong>
-            <span>Blocks, plots, burials, routes</span>
+            <strong>Sligo Town Cemetery</strong>
+            <span>{prototypeRecords.length} demo records / Blocks A-C</span>
           </div>
         </div>
       </section>
