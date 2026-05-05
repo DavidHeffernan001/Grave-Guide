@@ -27,6 +27,21 @@ type PlotResult = {
   } | null;
 };
 
+type RawPlotResult = Omit<PlotResult, "cemeteries"> & {
+  cemeteries:
+    | {
+        name: string;
+        town: string | null;
+        county: string | null;
+      }
+    | {
+        name: string;
+        town: string | null;
+        county: string | null;
+      }[]
+    | null;
+};
+
 type PersonResult = {
   id: string;
   display_name: string | null;
@@ -81,9 +96,14 @@ async function searchGraveGuide(query: string): Promise<SearchResults> {
       .limit(8)
   ]);
 
+  const plotResults = ((plots.data ?? []) as RawPlotResult[]).map((plot) => ({
+    ...plot,
+    cemeteries: Array.isArray(plot.cemeteries) ? (plot.cemeteries[0] ?? null) : plot.cemeteries
+  }));
+
   return {
     cemeteries: (cemeteries.data ?? []) as CemeteryResult[],
-    plots: (plots.data ?? []) as PlotResult[],
+    plots: plotResults,
     people: (people.data ?? []) as PersonResult[]
   };
 }
