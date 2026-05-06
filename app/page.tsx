@@ -5,6 +5,7 @@ import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
 
 type SearchParams = {
   q?: string;
+  selected?: string;
 };
 
 type CemeteryResult = {
@@ -125,7 +126,16 @@ export default async function Home({
   const results = await searchGraveGuide(query);
   const prototypeMatches = searchPrototypeRecords(query);
   const searched = query.length > 0;
+  const selectedRecord =
+    prototypeRecords.find((record) => record.id === params?.selected) ??
+    prototypeMatches[0] ??
+    prototypeRecords.find((record) => query && record.fullName.toLowerCase().includes(query.toLowerCase())) ??
+    null;
   const highlightedPlotIds = new Set(prototypeMatches.map((record) => record.plotId));
+
+  if (selectedRecord) {
+    highlightedPlotIds.add(selectedRecord.plotId);
+  }
 
   return (
     <main className="page">
@@ -139,7 +149,8 @@ export default async function Home({
         <nav className="nav" aria-label="Primary">
           <a href="#search">Search</a>
           <a href="#map">Map</a>
-          <a href="#status">Setup</a>
+          <a href="/visitor">Visitor</a>
+          <a href="/admin">Admin</a>
         </nav>
       </header>
 
@@ -226,7 +237,7 @@ export default async function Home({
                 ))}
 
                 {prototypeMatches.map((record) => (
-                  <article className="result-card" key={record.id}>
+                  <a className="result-card" href={`/?q=${encodeURIComponent(query)}&selected=${record.id}#map`} key={record.id}>
                     <Route size={18} aria-hidden="true" />
                     <div>
                       <strong>{record.fullName}</strong>
@@ -235,7 +246,7 @@ export default async function Home({
                       </span>
                       <p>Prototype map record from the Sligo Town Cemetery demo data. Dates: {record.dates}.</p>
                     </div>
-                  </article>
+                  </a>
                 ))}
               </>
             ) : (
@@ -290,6 +301,16 @@ export default async function Home({
             <strong>Sligo Town Cemetery</strong>
             <span>{prototypeRecords.length} demo records / Blocks A-C</span>
           </div>
+
+          {selectedRecord ? (
+            <aside className="grave-focus-card" aria-label="Selected grave">
+              <span>Selected grave</span>
+              <strong>{selectedRecord.fullName}</strong>
+              <p>{selectedRecord.plotId} / Block {selectedRecord.blockId}</p>
+              <small>{selectedRecord.dates}</small>
+              <a href="/visitor">Open visitor route</a>
+            </aside>
+          ) : null}
         </div>
       </section>
 
