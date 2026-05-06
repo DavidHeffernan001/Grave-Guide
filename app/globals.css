@@ -556,12 +556,16 @@ h1 {
 
 .flow-step {
   align-items: center;
+  background: transparent;
   border: 1px solid var(--line);
   border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 10px;
   grid-template-columns: 30px 1fr;
   padding: 10px;
+  text-align: left;
 }
 
 .flow-step span {
@@ -613,6 +617,15 @@ h1 {
   right: 18px;
   top: 18px;
   z-index: 8;
+}
+
+.phone-search input {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  min-width: 0;
+  outline: 0;
+  width: 100%;
 }
 
 .phone-locate {
@@ -676,7 +689,10 @@ h1 {
 
 .phone-entrance,
 .phone-grave {
+  appearance: none;
+  cursor: pointer;
   border-radius: 999px;
+  padding: 0;
   position: absolute;
   z-index: 4;
 }
@@ -728,6 +744,40 @@ h1 {
   z-index: 9;
 }
 
+.phone-results {
+  display: grid;
+  gap: 6px;
+  left: 18px;
+  position: absolute;
+  right: 18px;
+  top: 64px;
+  z-index: 9;
+}
+
+.phone-result {
+  align-items: center;
+  background: rgba(255, 253, 248, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.phone-result span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.phone-result.active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .sheet-handle {
   background: var(--line);
   border-radius: 999px;
@@ -771,6 +821,18 @@ h1 {
   display: flex;
   gap: 8px;
   margin: 0;
+}
+
+.start-route-button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 14px;
+  min-height: 42px;
+  width: 100%;
 }
 
 .admin-layout {
