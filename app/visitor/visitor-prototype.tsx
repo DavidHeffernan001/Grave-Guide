@@ -11,6 +11,7 @@ export function VisitorPrototype() {
   const [selectedRecordId, setSelectedRecordId] = useState(prototypeRecords[0]?.id ?? "");
   const [activeStep, setActiveStep] = useState(4);
   const [blocks, setBlocks] = useState<PrototypeBlock[]>(prototypeBlocks);
+  const [layoutStatus, setLayoutStatus] = useState("Using prototype layout");
 
   const matches = useMemo(() => searchPrototypeRecords(query), [query]);
   const selectedRecord = prototypeRecords.find((record) => record.id === selectedRecordId) ?? matches[0] ?? prototypeRecords[0];
@@ -23,9 +24,11 @@ export function VisitorPrototype() {
 
         if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
           setBlocks(payload.blocks);
+          setLayoutStatus("Using saved Supabase layout");
         }
       } catch {
         setBlocks(prototypeBlocks);
+        setLayoutStatus("Using prototype layout");
       }
     }
 
@@ -42,6 +45,7 @@ export function VisitorPrototype() {
       <aside className="flow-panel">
         <h1>Map-first visitor flow</h1>
         <p>Entrance scan, location permission, grave search, selected record, and route guidance.</p>
+        <div className="layout-status">{layoutStatus}</div>
         {flowSteps.map((step, index) => (
           <button
             className={index === activeStep ? "flow-step active" : "flow-step"}
