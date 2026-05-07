@@ -1,7 +1,7 @@
 "use client";
 
 import { LocateFixed, MapPin, Route, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const flowSteps = ["Entrance scan", "Allow location", "Show map", "Search records", "Select grave", "Start guidance"];
@@ -26,11 +26,23 @@ type RecordsPayload = {
   message?: string;
 };
 
+type LeafletModule = typeof import("leaflet");
+
 function toPrototypeRecord(record: (typeof prototypeRecords)[number]): VisitorRecord {
   return {
     ...record,
     source: "prototype"
   };
+}
+
+function rotatePoint(x: number, y: number, centerX: number, centerY: number, degrees: number) {
+  const radians = (degrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const translatedX = x - centerX;
+  const translatedY = y - centerY;
+
+  return [centerY + translatedX * sin + translatedY * cos, centerX + translatedX * cos - translatedY * sin] as [number, number];
 }
 
 export function VisitorPrototype() {
@@ -41,6 +53,11 @@ export function VisitorPrototype() {
   const [layoutStatus, setLayoutStatus] = useState("Using prototype layout");
   const [databaseRecords, setDatabaseRecords] = useState<VisitorRecord[]>([]);
   const [recordStatus, setRecordStatus] = useState("Searching Supabase records");
+  const [mapReady, setMapReady] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const leafletRef = useRef<LeafletModule | null>(null);
 
   const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(toPrototypeRecord), [query]);
   const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
@@ -126,6 +143,173 @@ export function VisitorPrototype() {
     };
   }, [query]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLeafletMap() {
+      if (!mapContainerRef.current || mapRef.current) {
+        return;
+      }
+
+      const L = await import("leaflet");
+
+      if (cancelled || !mapContainerRef.current) {
+        return;
+      }
+
+      leafletRef.current = L;
+      const map = L.map(mapContainerRef.current, {
+        attributionControl: false,
+        crs: L.CRS.Simple,
+        maxBounds: [
+          [-10, -10],
+          [110, 110]
+        ],
+        maxBoundsViscosity: 0.8,
+        maxZoom: 3,
+        minZoom: 0,
+        zoomControl: false
+      });
+
+      map.fitBounds([
+        [0, 0],
+        [100, 100]
+      ]);
+      mapRef.current = map;
+      layerRef.current = L.layerGroup().addTo(map);
+      setMapReady(true);
+    }
+
+    void loadLeafletMap();
+
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      layerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    const layer = layerRef.current;
+
+    if (!mapReady || !L || !map || !layer) {
+      return;
+    }
+
+    layer.clearLayers();
+
+    L.rectangle(
+      [
+        [0, 0],
+        [100, 100]
+      ],
+      {
+        color: "#d9d2c7",
+        fillColor: "#e5dccf",
+        fillOpacity: 1,
+        interactive: false,
+        weight: 1
+      }
+    ).addTo(layer);
+
+    for (let line = 0; line <= 100; line += 8) {
+      L.polyline(
+        [
+          [line, 0],
+          [line, 100]
+        ],
+        { color: "#cfc7ba", interactive: false, opacity: 0.7, weight: 1 }
+      ).addTo(layer);
+      L.polyline(
+        [
+          [0, line],
+          [100, line]
+        ],
+        { color: "#cfc7ba", interactive: false, opacity: 0.7, weight: 1 }
+      ).addTo(layer);
+    }
+
+    L.polyline(
+      [
+        [35, -15],
+        [48, 45],
+        [62, 115]
+      ],
+      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 7 }
+    ).addTo(layer);
+    L.polyline(
+      [
+        [88, 28],
+        [56, 82],
+        [32, 118]
+      ],
+      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 7 }
+    ).addTo(layer);
+
+    blocks.forEach((block) => {
+      const left = block.x - 26;
+      const top = block.y + 5;
+      const centerX = left + block.width / 2;
+      const centerY = top + block.height / 2;
+      const points = [
+        rotatePoint(left, top, centerX, centerY, block.rotate),
+        rotatePoint(left + block.width, top, centerX, centerY, block.rotate),
+        rotatePoint(left + block.width, top + block.height, centerX, centerY, block.rotate),
+        rotatePoint(left, top + block.height, centerX, centerY, block.rotate)
+      ];
+
+      L.polygon(points, {
+        color: "#587b70",
+        fillColor: "#2f6f58",
+        fillOpacity: 0.13,
+        interactive: false,
+        weight: 1
+      })
+        .bindTooltip(`Block ${block.id}`, { direction: "center", permanent: true })
+        .addTo(layer);
+    });
+
+    prototypeEntrances.forEach((entrance) => {
+      L.circleMarker([entrance.y, entrance.x], {
+        color: "#fffdf8",
+        fillColor: "#b46b34",
+        fillOpacity: 1,
+        radius: 6,
+        weight: 2
+      })
+        .bindTooltip(entrance.name)
+        .on("click", () => setActiveStep(0))
+        .addTo(layer);
+    });
+
+    prototypeRecords.slice(0, 18).forEach((record) => {
+      const isSelected = record.plotId === selectedRecord.plotId;
+
+      L.circleMarker([record.y, record.x], {
+        color: isSelected ? "#fffdf8" : "#83918a",
+        fillColor: isSelected ? "#b46b34" : "#fffdf8",
+        fillOpacity: 1,
+        radius: isSelected ? 7 : 4,
+        weight: isSelected ? 2 : 1
+      })
+        .bindTooltip(`${record.fullName} / ${record.plotId}`)
+        .on("click", () => selectRecord(matches.find((match) => match.plotId === record.plotId)?.id ?? record.id))
+        .addTo(layer);
+    });
+
+    L.polyline(
+      [
+        [60, 42],
+        [51, 52],
+        [40, 63]
+      ],
+      { color: "#2f6f58", dashArray: "5 6", interactive: false, opacity: 0.7, weight: 3 }
+    ).addTo(layer);
+  }, [blocks, mapReady, matches, selectedRecord.plotId]);
+
   function selectRecord(recordId: string) {
     setSelectedRecordId(recordId);
     setActiveStep(4);
@@ -170,48 +354,7 @@ export function VisitorPrototype() {
             <LocateFixed size={18} aria-hidden="true" />
           </button>
 
-          <div className="phone-path main" />
-          <div className="phone-path diagonal" />
-
-          {blocks.map((block) => (
-            <div
-              className="phone-block"
-              key={block.id}
-              style={{
-                left: `${block.x - 26}%`,
-                top: `${block.y + 5}%`,
-                width: `${block.width}%`,
-                height: `${block.height}%`,
-                transform: `rotate(${block.rotate}deg)`
-              }}
-            >
-              <span>{block.id}</span>
-            </div>
-          ))}
-
-          {prototypeEntrances.map((entrance) => (
-            <button
-              aria-label={entrance.name}
-              className="phone-entrance"
-              key={entrance.id}
-              onClick={() => setActiveStep(0)}
-              style={{ left: `${entrance.x}%`, top: `${entrance.y}%` }}
-              type="button"
-            />
-          ))}
-
-          {prototypeRecords.slice(0, 18).map((record) => (
-            <button
-              aria-label={`${record.fullName}, ${record.plotId}`}
-              className={record.plotId === selectedRecord.plotId ? "phone-grave active" : "phone-grave"}
-              key={record.id}
-              onClick={() => selectRecord(matches.find((match) => match.plotId === record.plotId)?.id ?? record.id)}
-              style={{ left: `${record.x}%`, top: `${record.y}%` }}
-              type="button"
-            />
-          ))}
-
-          <div className="phone-route" />
+          <div className="leaflet-phone-map" ref={mapContainerRef} aria-label="Interactive Leaflet cemetery map" />
 
           {query.trim().length > 1 && matches.length > 0 ? (
             <section className="phone-results" aria-label="Search results">
