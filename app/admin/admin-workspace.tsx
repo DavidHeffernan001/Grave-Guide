@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const storageKey = "graveguide-admin-blocks-v1";
+const adminTokenKey = "graveguide-admin-token";
 
 function cloneBlocks() {
   return prototypeBlocks.map((block) => ({ ...block }));
@@ -14,23 +15,56 @@ export function AdminWorkspace() {
   const [blocks, setBlocks] = useState<PrototypeBlock[]>(cloneBlocks);
   const [selectedBlockId, setSelectedBlockId] = useState(prototypeBlocks[0]?.id ?? "A");
   const [status, setStatus] = useState("Unsaved local workspace");
+  const [adminToken, setAdminToken] = useState("");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
+    setAdminToken(window.localStorage.getItem(adminTokenKey) ?? "");
 
-    if (!stored) return;
+    async function loadRemoteLayout() {
+      try {
+        const response = await fetch("/api/block-layouts?cemetery=sligo-town-cemetery");
+        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null; source?: string };
 
-    try {
-      const parsed = JSON.parse(stored) as PrototypeBlock[];
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setBlocks(parsed);
-        setSelectedBlockId(parsed[0].id);
-        setStatus("Loaded saved browser layout");
+        if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
+          setBlocks(payload.blocks);
+          setSelectedBlockId(payload.blocks[0].id);
+          setStatus(payload.source === "supabase" ? "Loaded Supabase layout" : "Loaded fallback layout");
+          return true;
+        }
+      } catch {
+        setStatus("Remote layout unavailable");
       }
-    } catch {
-      setStatus("Saved layout could not be loaded");
+
+      return false;
     }
+
+    loadRemoteLayout().then((loadedRemote) => {
+      if (loadedRemote) return;
+
+      const stored = window.localStorage.getItem(storageKey);
+
+      if (!stored) return;
+
+      try {
+        const parsed = JSON.parse(stored) as PrototypeBlock[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBlocks(parsed);
+          setSelectedBlockId(parsed[0].id);
+          setStatus("Loaded saved browser layout");
+        }
+      } catch {
+        setStatus("Saved layout could not be loaded");
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (adminToken) {
+      window.localStorage.setItem(adminTokenKey, adminToken);
+    } else {
+      window.localStorage.removeItem(adminTokenKey);
+    }
+  }, [adminToken]);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
@@ -44,9 +78,33 @@ export function AdminWorkspace() {
     setStatus("Layout changed");
   }
 
-  function saveLayout() {
+  async function saveLayout() {
     window.localStorage.setItem(storageKey, JSON.stringify(blocks));
     setStatus("Saved to this browser");
+
+    try {
+      const response = await fetch("/api/block-layouts", {
+        body: JSON.stringify({
+          cemeterySlug: "sligo-town-cemetery",
+          blocks
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-graveguide-admin-token": adminToken
+        },
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        setStatus(payload.error ?? "Saved locally; Supabase save unavailable");
+        return;
+      }
+
+      setStatus("Saved to Supabase and this browser");
+    } catch {
+      setStatus("Saved locally; Supabase save unavailable");
+    }
   }
 
   function resetLayout() {
@@ -91,6 +149,15 @@ export function AdminWorkspace() {
       <aside className="admin-sidebar">
         <h1>Sligo Town Cemetery</h1>
         <p>Configuration workspace rebuilt from the original prototype. Changes save locally for now.</p>
+        <label className="admin-token-field">
+          Admin token
+          <input
+            onChange={(event) => setAdminToken(event.target.value)}
+            placeholder="Optional save token"
+            type="password"
+            value={adminToken}
+          />
+        </label>
         <div className="admin-stat">
           <strong>{blocks.length}</strong>
           <span>Blocks</span>
@@ -107,7 +174,7 @@ export function AdminWorkspace() {
 
       <section className="admin-board">
         <div className="admin-toolbar">
-          <button onClick={saveLayout} type="button">
+          <button onClick={() => void saveLayout()} type="button">
             <Save size={16} aria-hidden="true" />
             Save layout
           </button>
