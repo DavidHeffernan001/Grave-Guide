@@ -19,6 +19,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
+GRAVEGUIDE_ADMIN_TOKEN=
 ```
 
 ## Run
@@ -42,10 +43,9 @@ Run the migrations in order:
 2. `supabase/migrations/002_seed_sligo_town_cemetery.sql`
 3. `supabase/migrations/003_memorial_photo_storage.sql`
 4. `supabase/migrations/004_seed_sample_burial_record.sql`
+5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
 
 More detail is in `docs/supabase-setup.md`.
-
-Deployment refresh.
 
 ## Deployment
 
