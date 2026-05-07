@@ -18,6 +18,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
+GRAVEGUIDE_ADMIN_TOKEN=
 ```
 
 Only the two `NEXT_PUBLIC_` values are safe to expose in browser code. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only.
@@ -30,8 +31,19 @@ In Supabase SQL Editor, run these files in order:
 2. `supabase/migrations/002_seed_sligo_town_cemetery.sql`
 3. `supabase/migrations/003_memorial_photo_storage.sql`
 4. `supabase/migrations/004_seed_sample_burial_record.sql`
+5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
 
-The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing.
+The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by the Admin and Visitor prototypes.
+
+## 3. Admin Save Token
+
+Add this environment variable in Vercel:
+
+```txt
+GRAVEGUIDE_ADMIN_TOKEN
+```
+
+Use a long private value. In `/admin`, paste the same value into the Admin token field before saving a layout to Supabase.
 
 ## 3. Auth
 
