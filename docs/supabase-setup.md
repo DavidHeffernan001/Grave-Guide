@@ -32,8 +32,9 @@ In Supabase SQL Editor, run these files in order:
 3. `supabase/migrations/003_memorial_photo_storage.sql`
 4. `supabase/migrations/004_seed_sample_burial_record.sql`
 5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
+6. `supabase/migrations/006_seed_sligo_demo_records.sql`
 
-The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by the Admin and Visitor prototypes.
+The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by the Admin and Visitor prototypes. The sixth imports the original Sligo demo names, plots, and burials into Supabase.
 
 ## 3. Admin Save Token
 
@@ -45,7 +46,19 @@ GRAVEGUIDE_ADMIN_TOKEN
 
 Use a long private value. In `/admin`, paste the same value into the Admin token field before saving a layout to Supabase.
 
-## 3. Auth
+## 4. Visitor Search
+
+The `/visitor` page now searches the real Supabase burial records through:
+
+```txt
+/api/records?q=andrew
+```
+
+That API uses `SUPABASE_SERVICE_ROLE_KEY`, so make sure this key exists in Vercel. Do not put the service role key in browser code or visible text.
+
+If Supabase cannot answer, the visitor page still shows the demo records so the prototype remains usable.
+
+## 5. Auth
 
 Enable email auth in Supabase Auth. New users automatically receive a row in `public.profiles`.
 
@@ -59,7 +72,7 @@ where id = 'YOUR_USER_ID';
 
 You can find the user id in Supabase Auth > Users.
 
-## 4. Storage
+## 6. Storage
 
 The storage migration creates a private bucket named:
 
@@ -69,7 +82,7 @@ memorial-photos
 
 Photo metadata is tracked in `public.memorial_photos`.
 
-## 5. Production Domain
+## 7. Production Domain
 
 Use `graveguide.ie` as the canonical production domain. Redirect:
 
