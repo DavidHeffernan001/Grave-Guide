@@ -1,14 +1,25 @@
 "use client";
 
 import { RotateCcw, Save, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const storageKey = "graveguide-admin-blocks-v1";
 const adminTokenKey = "graveguide-admin-token";
+type LeafletModule = typeof import("leaflet");
 
 function cloneBlocks() {
   return prototypeBlocks.map((block) => ({ ...block }));
+}
+
+function rotatePoint(x: number, y: number, centerX: number, centerY: number, degrees: number) {
+  const radians = (degrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const translatedX = x - centerX;
+  const translatedY = y - centerY;
+
+  return [centerY + translatedX * sin + translatedY * cos, centerX + translatedX * cos - translatedY * sin] as [number, number];
 }
 
 export function AdminWorkspace() {
@@ -16,6 +27,11 @@ export function AdminWorkspace() {
   const [selectedBlockId, setSelectedBlockId] = useState(prototypeBlocks[0]?.id ?? "A");
   const [status, setStatus] = useState("Unsaved local workspace");
   const [adminToken, setAdminToken] = useState("");
+  const [mapReady, setMapReady] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const leafletRef = useRef<LeafletModule | null>(null);
 
   useEffect(() => {
     setAdminToken(window.localStorage.getItem(adminTokenKey) ?? "");
@@ -70,6 +86,147 @@ export function AdminWorkspace() {
     () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
     [blocks, selectedBlockId]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLeafletMap() {
+      if (!mapContainerRef.current || mapRef.current) {
+        return;
+      }
+
+      const L = await import("leaflet");
+
+      if (cancelled || !mapContainerRef.current) {
+        return;
+      }
+
+      leafletRef.current = L;
+      const map = L.map(mapContainerRef.current, {
+        attributionControl: false,
+        crs: L.CRS.Simple,
+        maxBounds: [
+          [-12, -12],
+          [112, 112]
+        ],
+        maxBoundsViscosity: 0.75,
+        maxZoom: 4,
+        minZoom: -1
+      });
+
+      map.fitBounds([
+        [0, 0],
+        [100, 100]
+      ]);
+      mapRef.current = map;
+      layerRef.current = L.layerGroup().addTo(map);
+      setMapReady(true);
+    }
+
+    void loadLeafletMap();
+
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      layerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const L = leafletRef.current;
+    const layer = layerRef.current;
+
+    if (!mapReady || !L || !layer) {
+      return;
+    }
+
+    layer.clearLayers();
+
+    L.rectangle(
+      [
+        [0, 0],
+        [100, 100]
+      ],
+      {
+        color: "#d9d2c7",
+        fillColor: "#e5dccf",
+        fillOpacity: 1,
+        interactive: false,
+        weight: 1
+      }
+    ).addTo(layer);
+
+    for (let line = 0; line <= 100; line += 5) {
+      L.polyline(
+        [
+          [line, 0],
+          [line, 100]
+        ],
+        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
+      ).addTo(layer);
+      L.polyline(
+        [
+          [0, line],
+          [100, line]
+        ],
+        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
+      ).addTo(layer);
+    }
+
+    L.polyline(
+      [
+        [35, -15],
+        [48, 45],
+        [62, 115]
+      ],
+      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
+    ).addTo(layer);
+    L.polyline(
+      [
+        [88, 28],
+        [56, 82],
+        [32, 118]
+      ],
+      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
+    ).addTo(layer);
+
+    blocks.forEach((block) => {
+      const left = block.x - 25;
+      const top = block.y + 5;
+      const centerX = left + block.width / 2;
+      const centerY = top + block.height / 2;
+      const points = [
+        rotatePoint(left, top, centerX, centerY, block.rotate),
+        rotatePoint(left + block.width, top, centerX, centerY, block.rotate),
+        rotatePoint(left + block.width, top + block.height, centerX, centerY, block.rotate),
+        rotatePoint(left, top + block.height, centerX, centerY, block.rotate)
+      ];
+      const isSelected = block.id === selectedBlock.id;
+
+      L.polygon(points, {
+        color: isSelected ? "#b46b34" : "#587b70",
+        fillColor: isSelected ? "#b46b34" : "#2f6f58",
+        fillOpacity: isSelected ? 0.18 : 0.13,
+        weight: isSelected ? 2 : 1
+      })
+        .bindTooltip(block.name, { direction: "center", permanent: true })
+        .on("click", () => setSelectedBlockId(block.id))
+        .addTo(layer);
+    });
+
+    prototypeEntrances.forEach((entrance) => {
+      L.circleMarker([entrance.y, entrance.x], {
+        color: "#fffdf8",
+        fillColor: "#b46b34",
+        fillOpacity: 1,
+        radius: 6,
+        weight: 2
+      })
+        .bindTooltip(entrance.name)
+        .addTo(layer);
+    });
+  }, [blocks, mapReady, selectedBlock.id]);
 
   function updateSelectedBlock(field: keyof Pick<PrototypeBlock, "x" | "y" | "width" | "height" | "rotate">, value: number) {
     setBlocks((currentBlocks) =>
@@ -195,28 +352,7 @@ export function AdminWorkspace() {
 
         <div className="admin-workspace-grid">
           <div className="admin-map">
-            <div className="phone-path main" />
-            <div className="phone-path diagonal" />
-            {blocks.map((block) => (
-              <button
-                className={block.id === selectedBlock.id ? "admin-block selected" : "admin-block"}
-                key={block.id}
-                onClick={() => setSelectedBlockId(block.id)}
-                style={{
-                  left: `${block.x - 25}%`,
-                  top: `${block.y + 5}%`,
-                  width: `${block.width}%`,
-                  height: `${block.height}%`,
-                  transform: `rotate(${block.rotate}deg)`
-                }}
-                type="button"
-              >
-                <strong>{block.name}</strong>
-                <span>
-                  {block.width} x {block.height} / {block.rotate}deg
-                </span>
-              </button>
-            ))}
+            <div className="admin-leaflet-map" ref={mapContainerRef} aria-label="Admin Leaflet layout map" />
           </div>
 
           <aside className="block-editor">
