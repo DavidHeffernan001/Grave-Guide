@@ -154,7 +154,7 @@ export default async function Home({
         </div>
         <nav className="nav" aria-label="Primary">
           <a href="#search">Search</a>
-          <a href="#map">Map</a>
+          <a href="/map">Map</a>
           <a href="/visitor">Visitor</a>
           <a href="/admin">Admin</a>
         </nav>

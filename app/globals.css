@@ -618,6 +618,34 @@ h1 {
   width: min(390px, calc(100vw - 44px));
 }
 
+.leaflet-phone-map {
+  inset: 0;
+  position: absolute;
+  z-index: 0;
+}
+
+.leaflet-phone-map .leaflet-container,
+.leaflet-phone-map.leaflet-container {
+  background: #e5dccf;
+  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  width: 100%;
+}
+
+.leaflet-phone-map .leaflet-tooltip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 5px;
+}
+
+.leaflet-phone-map .leaflet-interactive {
+  outline: none;
+}
+
 .phone-search {
   align-items: center;
   background: var(--panel);
@@ -849,6 +877,18 @@ h1 {
   width: 100%;
 }
 
+.phone-detail-link {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-dark);
+  display: flex;
+  font-weight: 700;
+  justify-content: center;
+  margin-top: 8px;
+  min-height: 38px;
+}
+
 .admin-layout {
   grid-template-columns: minmax(260px, 340px) 1fr;
 }
@@ -931,6 +971,26 @@ h1 {
   min-height: 520px;
   overflow: hidden;
   position: relative;
+}
+
+.admin-leaflet-map {
+  inset: 0;
+  position: absolute;
+}
+
+.admin-leaflet-map.leaflet-container {
+  background: #e5dccf;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.admin-leaflet-map .leaflet-tooltip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 6px;
 }
 
 .admin-block {
@@ -1044,6 +1104,165 @@ h1 {
   margin-top: 4px;
 }
 
+.map-workspace {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  min-height: calc(100vh - 72px);
+  padding: clamp(20px, 4vw, 44px);
+}
+
+.map-sidebar,
+.map-floating-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.map-sidebar {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.map-sidebar h1 {
+  font-size: 32px;
+  line-height: 1;
+  margin: 0;
+}
+
+.map-sidebar p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.map-search {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: flex;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.map-search input {
+  background: transparent;
+  border: 0;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.map-result-list {
+  display: grid;
+  gap: 8px;
+}
+
+.map-result {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  padding: 12px;
+  text-align: left;
+}
+
+.map-result.active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.map-result strong,
+.map-result span {
+  display: block;
+}
+
+.map-result span {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.map-stage {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 720px;
+  overflow: hidden;
+  position: relative;
+}
+
+.large-leaflet-map {
+  inset: 0;
+  position: absolute;
+}
+
+.large-leaflet-map.leaflet-container {
+  background: #e5dccf;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.large-leaflet-map .leaflet-tooltip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 6px;
+}
+
+.map-floating-card {
+  bottom: 18px;
+  box-shadow: 0 14px 34px rgba(24, 33, 29, 0.14);
+  display: grid;
+  gap: 5px;
+  left: 18px;
+  padding: 14px;
+  position: absolute;
+  width: min(280px, calc(100% - 36px));
+  z-index: 500;
+}
+
+.map-floating-card span,
+.map-floating-card p {
+  color: var(--muted);
+}
+
+.map-floating-card strong {
+  font-size: 22px;
+}
+
+.map-floating-card p {
+  margin: 0;
+}
+
+.map-floating-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 8px;
+}
+
+.map-floating-actions button,
+.map-floating-actions a {
+  align-items: center;
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 7px;
+  justify-content: center;
+  min-height: 40px;
+}
+
 .detail-layout {
   display: grid;
   padding: clamp(24px, 5vw, 64px);
@@ -1065,6 +1284,32 @@ h1 {
   color: var(--muted);
   font-size: 18px;
   line-height: 1.55;
+}
+
+.detail-sections {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 22px;
+}
+
+.detail-sections section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.detail-sections h2 {
+  align-items: center;
+  display: flex;
+  font-size: 18px;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.detail-sections p {
+  font-size: 15px;
+  margin: 0;
 }
 
 .detail-meta,
@@ -1094,7 +1339,8 @@ h1 {
 
 @media (max-width: 900px) {
   .visitor-shell,
-  .admin-layout {
+  .admin-layout,
+  .map-workspace {
     grid-template-columns: 1fr;
   }
 
@@ -1107,6 +1353,14 @@ h1 {
   }
 
   .admin-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-stage {
+    min-height: 620px;
+  }
+
+  .detail-sections {
     grid-template-columns: 1fr;
   }
 }
