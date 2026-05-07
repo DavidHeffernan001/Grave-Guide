@@ -58,7 +58,17 @@ That API uses `SUPABASE_SERVICE_ROLE_KEY`, so make sure this key exists in Verce
 
 If Supabase cannot answer, the visitor page still shows the demo records so the prototype remains usable.
 
-## 5. Auth
+## 5. Plot Detail Pages
+
+The public plot pages use the plot reference in the address:
+
+```txt
+/plots/A-01-001
+```
+
+When that plot exists in Supabase, the page shows the Supabase person, burial, cemetery, and plot details. If the plot is not in Supabase yet, it falls back to the demo prototype record where possible.
+
+## 6. Auth
 
 Enable email auth in Supabase Auth. New users automatically receive a row in `public.profiles`.
 
@@ -72,7 +82,7 @@ where id = 'YOUR_USER_ID';
 
 You can find the user id in Supabase Auth > Users.
 
-## 6. Storage
+## 7. Storage
 
 The storage migration creates a private bucket named:
 
@@ -82,7 +92,7 @@ memorial-photos
 
 Photo metadata is tracked in `public.memorial_photos`.
 
-## 7. Production Domain
+## 8. Production Domain
 
 Use `graveguide.ie` as the canonical production domain. Redirect:
 
