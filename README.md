@@ -4,7 +4,7 @@ GraveGuide is a Vercel-ready Next.js app backed by Supabase.
 
 ## What Is In This Project
 
-- `app/`: public GraveGuide app shell.
+- `app/`: public GraveGuide app shell, visitor flow, admin workspace, and API routes.
 - `lib/supabase/`: Supabase browser/server client setup.
 - `supabase/migrations/`: initial database schema, RLS policies, and seed data.
 - `docs/`: Supabase, Vercel, and domain setup notes.
@@ -35,6 +35,12 @@ Then open:
 http://localhost:3000
 ```
 
+Useful pages after deployment:
+
+- `/`: public search homepage.
+- `/visitor`: phone-style visitor flow. It searches Supabase records first and falls back to demo records if needed.
+- `/admin`: cemetery layout editor. Use your `GRAVEGUIDE_ADMIN_TOKEN` here before saving the layout.
+
 ## Supabase
 
 Run the migrations in order:
@@ -44,6 +50,7 @@ Run the migrations in order:
 3. `supabase/migrations/003_memorial_photo_storage.sql`
 4. `supabase/migrations/004_seed_sample_burial_record.sql`
 5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
+6. `supabase/migrations/006_seed_sligo_demo_records.sql`
 
 More detail is in `docs/supabase-setup.md`.
 
