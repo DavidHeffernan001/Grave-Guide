@@ -6,15 +6,51 @@ import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeR
 
 const flowSteps = ["Entrance scan", "Allow location", "Show map", "Search records", "Select grave", "Start guidance"];
 
+type VisitorRecord = {
+  id: string;
+  fullName: string;
+  dates: string;
+  plotId: string;
+  blockId: string;
+  x: number | null;
+  y: number | null;
+  source: "supabase" | "prototype";
+  cemeteryName?: string;
+  town?: string | null;
+  county?: string | null;
+};
+
+type RecordsPayload = {
+  records?: Array<Omit<VisitorRecord, "source">>;
+  source?: string;
+  message?: string;
+};
+
+function toPrototypeRecord(record: (typeof prototypeRecords)[number]): VisitorRecord {
+  return {
+    ...record,
+    source: "prototype"
+  };
+}
+
 export function VisitorPrototype() {
   const [query, setQuery] = useState("Andrew Hosie");
   const [selectedRecordId, setSelectedRecordId] = useState(prototypeRecords[0]?.id ?? "");
   const [activeStep, setActiveStep] = useState(4);
   const [blocks, setBlocks] = useState<PrototypeBlock[]>(prototypeBlocks);
   const [layoutStatus, setLayoutStatus] = useState("Using prototype layout");
+  const [databaseRecords, setDatabaseRecords] = useState<VisitorRecord[]>([]);
+  const [recordStatus, setRecordStatus] = useState("Searching Supabase records");
 
-  const matches = useMemo(() => searchPrototypeRecords(query), [query]);
-  const selectedRecord = prototypeRecords.find((record) => record.id === selectedRecordId) ?? matches[0] ?? prototypeRecords[0];
+  const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(toPrototypeRecord), [query]);
+  const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
+  const fallbackMatches = prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId));
+  const matches = [...databaseRecords, ...fallbackMatches];
+  const selectedRecord =
+    matches.find((record) => record.id === selectedRecordId) ??
+    prototypeRecords.map(toPrototypeRecord).find((record) => record.id === selectedRecordId) ??
+    matches[0] ??
+    toPrototypeRecord(prototypeRecords[0]);
 
   useEffect(() => {
     async function loadLayout() {
@@ -35,6 +71,61 @@ export function VisitorPrototype() {
     void loadLayout();
   }, []);
 
+  useEffect(() => {
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery.length < 2) {
+      setDatabaseRecords([]);
+      setRecordStatus("Type at least 2 letters");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadRecords() {
+      setRecordStatus("Searching Supabase records");
+
+      try {
+        const response = await fetch(`/api/records?q=${encodeURIComponent(normalizedQuery)}`, {
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error("Record search failed");
+        }
+
+        const payload = (await response.json()) as RecordsPayload;
+        const records = (payload.records ?? []).map((record) => ({
+          ...record,
+          source: "supabase" as const
+        }));
+
+        setDatabaseRecords(records);
+        setRecordStatus(records.length > 0 ? "Using Supabase records" : "No Supabase records found");
+
+        if (records.length > 0) {
+          setSelectedRecordId(records[0].id);
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setDatabaseRecords([]);
+        setRecordStatus("Using demo fallback records");
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadRecords();
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [query]);
+
   function selectRecord(recordId: string) {
     setSelectedRecordId(recordId);
     setActiveStep(4);
@@ -46,6 +137,7 @@ export function VisitorPrototype() {
         <h1>Map-first visitor flow</h1>
         <p>Entrance scan, location permission, grave search, selected record, and route guidance.</p>
         <div className="layout-status">{layoutStatus}</div>
+        <div className="layout-status">{recordStatus}</div>
         {flowSteps.map((step, index) => (
           <button
             className={index === activeStep ? "flow-step active" : "flow-step"}
@@ -111,9 +203,9 @@ export function VisitorPrototype() {
           {prototypeRecords.slice(0, 18).map((record) => (
             <button
               aria-label={`${record.fullName}, ${record.plotId}`}
-              className={record.id === selectedRecord.id ? "phone-grave active" : "phone-grave"}
+              className={record.plotId === selectedRecord.plotId ? "phone-grave active" : "phone-grave"}
               key={record.id}
-              onClick={() => selectRecord(record.id)}
+              onClick={() => selectRecord(matches.find((match) => match.plotId === record.plotId)?.id ?? record.id)}
               style={{ left: `${record.x}%`, top: `${record.y}%` }}
               type="button"
             />
@@ -131,7 +223,10 @@ export function VisitorPrototype() {
                   type="button"
                 >
                   <strong>{record.fullName}</strong>
-                  <span>{record.plotId}</span>
+                  <span>
+                    {record.plotId}
+                    {record.source === "supabase" ? " / live" : " / demo"}
+                  </span>
                 </button>
               ))}
             </section>
@@ -146,6 +241,7 @@ export function VisitorPrototype() {
                 <p>
                   {selectedRecord.plotId} / Block {selectedRecord.blockId}
                 </p>
+                {selectedRecord.cemeteryName ? <small>{selectedRecord.cemeteryName}</small> : null}
               </div>
               <b>{activeStep >= 5 ? "Active" : "6 min"}</b>
             </div>
