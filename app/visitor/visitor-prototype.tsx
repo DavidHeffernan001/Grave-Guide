@@ -258,6 +258,11 @@ export function VisitorPrototype() {
             <button className="start-route-button" onClick={() => setActiveStep(5)} type="button">
               Start guidance
             </button>
+            {selectedRecord.plotId !== "Plot not linked yet" ? (
+              <a className="phone-detail-link" href={`/plots/${encodeURIComponent(selectedRecord.plotId)}`}>
+                View grave details
+              </a>
+            ) : null}
           </section>
         </div>
       </section>
