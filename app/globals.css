@@ -864,6 +864,7 @@ h1 {
 }
 
 .admin-toolbar {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -878,6 +879,18 @@ h1 {
   gap: 8px;
   min-height: 42px;
   padding: 0 12px;
+}
+
+.admin-save-status {
+  color: var(--muted);
+  font-size: 13px;
+  margin-left: auto;
+}
+
+.admin-workspace-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .admin-map {
@@ -895,9 +908,18 @@ h1 {
 
 .admin-block {
   align-content: center;
+  appearance: none;
+  color: inherit;
+  cursor: pointer;
   gap: 4px;
   padding: 8px;
   text-align: center;
+}
+
+.admin-block.selected {
+  background: rgba(180, 107, 52, 0.16);
+  border-color: var(--warm);
+  box-shadow: 0 0 0 4px rgba(180, 107, 52, 0.16);
 }
 
 .admin-block strong,
@@ -913,6 +935,43 @@ h1 {
   font-size: 11px;
 }
 
+.block-editor {
+  align-self: stretch;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+}
+
+.block-editor h2 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.block-editor p {
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.block-editor label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.block-editor input {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+.block-editor span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
 .admin-panels {
   display: grid;
   gap: 10px;
@@ -921,16 +980,30 @@ h1 {
 
 .admin-panel {
   align-items: start;
+  appearance: none;
+  background: transparent;
   border: 1px solid var(--line);
   border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 10px;
   grid-template-columns: 20px 1fr;
   padding: 12px;
+  text-align: left;
 }
 
-.admin-panel svg {
-  color: var(--accent);
+.admin-panel.selected {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.admin-panel-dot {
+  background: var(--accent);
+  border-radius: 999px;
+  height: 10px;
+  margin-top: 4px;
+  width: 10px;
 }
 
 .admin-panel strong,
@@ -955,6 +1028,10 @@ h1 {
   }
 
   .admin-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-workspace-grid {
     grid-template-columns: 1fr;
   }
 }
