@@ -125,13 +125,19 @@ export default async function Home({
   const query = params?.q?.trim() ?? "";
   const results = await searchGraveGuide(query);
   const prototypeMatches = searchPrototypeRecords(query);
+  const databasePersonNames = new Set(
+    results.people
+      .map((person) => (person.display_name || [person.given_names, person.family_name].filter(Boolean).join(" ")).toLowerCase())
+      .filter(Boolean)
+  );
+  const fallbackPrototypeMatches = prototypeMatches.filter((record) => !databasePersonNames.has(record.fullName.toLowerCase()));
   const searched = query.length > 0;
   const selectedRecord =
     prototypeRecords.find((record) => record.id === params?.selected) ??
-    prototypeMatches[0] ??
+    fallbackPrototypeMatches[0] ??
     prototypeRecords.find((record) => query && record.fullName.toLowerCase().includes(query.toLowerCase())) ??
     null;
-  const highlightedPlotIds = new Set(prototypeMatches.map((record) => record.plotId));
+  const highlightedPlotIds = new Set(fallbackPrototypeMatches.map((record) => record.plotId));
 
   if (selectedRecord) {
     highlightedPlotIds.add(selectedRecord.plotId);
@@ -185,12 +191,12 @@ export default async function Home({
                 <strong>Try a search to begin.</strong>
                 <span>Sligo, Block A, and A-001 are seeded already.</span>
               </div>
-            ) : hasResults(results) || prototypeMatches.length > 0 ? (
+            ) : hasResults(results) || fallbackPrototypeMatches.length > 0 ? (
               <>
                 <div className="results-heading">
                   <strong>Results for &quot;{query}&quot;</strong>
                   <span>
-                    {results.cemeteries.length + results.plots.length + results.people.length + prototypeMatches.length} matches
+                    {results.cemeteries.length + results.plots.length + results.people.length + fallbackPrototypeMatches.length} matches
                   </span>
                 </div>
 
@@ -236,7 +242,7 @@ export default async function Home({
                   </article>
                 ))}
 
-                {prototypeMatches.map((record) => (
+                {fallbackPrototypeMatches.map((record) => (
                   <a className="result-card" href={`/?q=${encodeURIComponent(query)}&selected=${record.id}#map`} key={record.id}>
                     <Route size={18} aria-hidden="true" />
                     <div>

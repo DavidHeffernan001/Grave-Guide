@@ -587,6 +587,16 @@ h1 {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
+.layout-status {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 10px;
+}
+
 .phone-frame {
   display: grid;
   justify-content: center;
