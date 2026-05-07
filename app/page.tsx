@@ -214,7 +214,7 @@ export default async function Home({
                 ))}
 
                 {results.plots.map((plot) => (
-                  <article className="result-card" key={plot.id}>
+                  <a className="result-card" href={`/plots/${encodeURIComponent(plot.plot_reference)}`} key={plot.id}>
                     <Landmark size={18} aria-hidden="true" />
                     <div>
                       <strong>Plot {plot.plot_reference}</strong>
@@ -223,9 +223,9 @@ export default async function Home({
                         {[plot.row_label ? `Row ${plot.row_label}` : null, plot.plot_number ? `No. ${plot.plot_number}` : null]
                           .filter(Boolean)
                           .join(" / ")}
-                      </p>
+                        </p>
                     </div>
-                  </article>
+                  </a>
                 ))}
 
                 {results.people.map((person) => (
