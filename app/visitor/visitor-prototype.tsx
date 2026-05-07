@@ -1,8 +1,8 @@
 "use client";
 
 import { LocateFixed, MapPin, Route, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords } from "@/lib/prototype-data";
+import { useEffect, useMemo, useState } from "react";
+import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const flowSteps = ["Entrance scan", "Allow location", "Show map", "Search records", "Select grave", "Start guidance"];
 
@@ -10,9 +10,27 @@ export function VisitorPrototype() {
   const [query, setQuery] = useState("Andrew Hosie");
   const [selectedRecordId, setSelectedRecordId] = useState(prototypeRecords[0]?.id ?? "");
   const [activeStep, setActiveStep] = useState(4);
+  const [blocks, setBlocks] = useState<PrototypeBlock[]>(prototypeBlocks);
 
   const matches = useMemo(() => searchPrototypeRecords(query), [query]);
   const selectedRecord = prototypeRecords.find((record) => record.id === selectedRecordId) ?? matches[0] ?? prototypeRecords[0];
+
+  useEffect(() => {
+    async function loadLayout() {
+      try {
+        const response = await fetch("/api/block-layouts?cemetery=sligo-town-cemetery");
+        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null };
+
+        if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
+          setBlocks(payload.blocks);
+        }
+      } catch {
+        setBlocks(prototypeBlocks);
+      }
+    }
+
+    void loadLayout();
+  }, []);
 
   function selectRecord(recordId: string) {
     setSelectedRecordId(recordId);
@@ -59,7 +77,7 @@ export function VisitorPrototype() {
           <div className="phone-path main" />
           <div className="phone-path diagonal" />
 
-          {prototypeBlocks.map((block) => (
+          {blocks.map((block) => (
             <div
               className="phone-block"
               key={block.id}
