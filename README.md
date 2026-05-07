@@ -40,6 +40,7 @@ Useful pages after deployment:
 - `/`: public search homepage.
 - `/visitor`: phone-style visitor flow. It searches Supabase records first and falls back to demo records if needed.
 - `/admin`: cemetery layout editor. Use your `GRAVEGUIDE_ADMIN_TOKEN` here before saving the layout.
+- `/plots/A-01-001`: public plot detail page. It reads from Supabase when the plot exists there.
 
 ## Supabase
 
