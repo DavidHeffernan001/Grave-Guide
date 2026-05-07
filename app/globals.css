@@ -480,6 +480,10 @@ h1 {
   min-height: 100vh;
 }
 
+.detail-page {
+  min-height: 100vh;
+}
+
 .demo-topbar {
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -844,6 +848,19 @@ h1 {
   padding-left: 12px;
 }
 
+.admin-token-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.admin-token-field input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
 .admin-stat strong,
 .admin-stat span {
   display: block;
@@ -1015,6 +1032,54 @@ h1 {
   color: var(--muted);
   font-size: 13px;
   margin-top: 4px;
+}
+
+.detail-layout {
+  display: grid;
+  padding: clamp(24px, 5vw, 64px);
+}
+
+.detail-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 780px;
+  padding: clamp(22px, 4vw, 42px);
+}
+
+.detail-card h1 {
+  font-size: clamp(42px, 6vw, 76px);
+}
+
+.detail-card p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.detail-meta,
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.detail-meta span,
+.detail-actions a {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.detail-actions a {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {
