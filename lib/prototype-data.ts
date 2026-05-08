@@ -1,26 +1,40 @@
-export type PrototypeBlockType = "standard" | "lawn" | "cremation" | "family" | "reserved" | "custom";
-export type PrototypeBlockDirection = "left-to-right" | "right-to-left" | "top-to-bottom" | "bottom-to-top";
-export type PrototypeBlockOrientation = "horizontal" | "vertical";
-
-export type PrototypeBlock = {
-  id: string;
-  name: string;
+export type PrototypeBlockCalibration = {
   x: number;
   y: number;
   width: number;
   height: number;
   rotate: number;
-  blockType: PrototypeBlockType;
-  customTypeName?: string;
-  stripCount: number;
-  rowCount: number;
+  cutout: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  polygon?: Array<{ x: number; y: number }>;
+};
+
+export type PrototypeBlockRowRule = {
+  rows: [number, number];
   plotsPerRow: number;
-  firstPlotNumber: number;
-  rowPrefix: string;
-  stripPrefix: string;
-  numberingDirection: PrototypeBlockDirection;
-  rowOrientation: PrototypeBlockOrientation;
-  notes?: string;
+};
+
+export type PrototypeBlock = {
+  id: string;
+  cemeteryId: string;
+  name: string;
+  physicalStrips: number;
+  rowsPerStrip: number;
+  stripRowCounts: Record<string, number>;
+  blockTemplate: string;
+  logicalRows: number;
+  rowPlotCounts: Record<string, number>;
+  rowRules: PrototypeBlockRowRule[];
+  calibration: PrototypeBlockCalibration;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotate: number;
 };
 
 export type PrototypeEntrance = {
@@ -40,81 +54,192 @@ export type PrototypeRecord = {
   y: number;
 };
 
-export const prototypeBlocks: PrototypeBlock[] = [
-  {
-    id: "A",
-    name: "Block A",
-    x: 75.8,
-    y: 22.2,
-    width: 22,
-    height: 30,
-    rotate: 39,
-    blockType: "standard",
-    stripCount: 3,
-    rowCount: 17,
-    plotsPerRow: 32,
-    firstPlotNumber: 1,
-    rowPrefix: "R",
-    stripPrefix: "S",
-    numberingDirection: "left-to-right",
-    rowOrientation: "horizontal",
-    notes: "Main prototype burial block."
-  },
-  {
-    id: "B",
-    name: "Block B",
-    x: 91.1,
-    y: 31.7,
-    width: 24,
-    height: 15,
-    rotate: 39,
-    blockType: "standard",
-    stripCount: 2,
-    rowCount: 20,
-    plotsPerRow: 32,
-    firstPlotNumber: 1,
-    rowPrefix: "R",
-    stripPrefix: "S",
-    numberingDirection: "left-to-right",
-    rowOrientation: "horizontal",
-    notes: "Secondary burial block along the east path."
-  },
-  {
-    id: "C",
-    name: "Block C",
-    x: 100.3,
-    y: 26.4,
-    width: 24,
-    height: 16,
-    rotate: 39,
-    blockType: "cremation",
-    stripCount: 2,
-    rowCount: 12,
-    plotsPerRow: 24,
-    firstPlotNumber: 1,
-    rowPrefix: "R",
-    stripPrefix: "S",
-    numberingDirection: "left-to-right",
-    rowOrientation: "vertical",
-    notes: "Prototype cremation and memorial section."
-  }
-];
+function rangeRecord(count: number, value: number) {
+  return Object.fromEntries(Array.from({ length: count }, (_, index) => [String(index + 1), value]));
+}
 
-export function normalizePrototypeBlock(block: Partial<PrototypeBlock> & Pick<PrototypeBlock, "id" | "name" | "x" | "y" | "width" | "height" | "rotate">): PrototypeBlock {
+function blockAPlotCounts() {
+  return Object.fromEntries(Array.from({ length: 18 }, (_, index) => [String(index + 1), index < 2 ? 26 : 32]));
+}
+
+function withMapGeometry(
+  block: Omit<PrototypeBlock, "x" | "y" | "width" | "height" | "rotate">,
+  geometry: Pick<PrototypeBlock, "width" | "height">
+): PrototypeBlock {
   return {
     ...block,
-    blockType: block.blockType ?? "standard",
-    customTypeName: block.customTypeName ?? "",
-    stripCount: block.stripCount ?? 1,
-    rowCount: block.rowCount ?? 8,
-    plotsPerRow: block.plotsPerRow ?? 24,
-    firstPlotNumber: block.firstPlotNumber ?? 1,
-    rowPrefix: block.rowPrefix ?? "R",
-    stripPrefix: block.stripPrefix ?? "S",
-    numberingDirection: block.numberingDirection ?? "left-to-right",
-    rowOrientation: block.rowOrientation ?? "horizontal",
-    notes: block.notes ?? ""
+    x: block.calibration.x,
+    y: block.calibration.y,
+    width: geometry.width,
+    height: geometry.height,
+    rotate: block.calibration.rotate
   };
+}
+
+export const prototypeBlocks: PrototypeBlock[] = [
+  withMapGeometry(
+    {
+      id: "A",
+      cemeteryId: "sligo-town-cemetery",
+      name: "Block A",
+      physicalStrips: 9,
+      rowsPerStrip: 2,
+      stripRowCounts: rangeRecord(9, 2),
+      blockTemplate: "standard-2",
+      logicalRows: 18,
+      rowPlotCounts: blockAPlotCounts(),
+      rowRules: [
+        { rows: [1, 2], plotsPerRow: 26 },
+        { rows: [3, 18], plotsPerRow: 32 }
+      ],
+      calibration: {
+        x: 75.8,
+        y: 22.2,
+        width: 97,
+        height: 121,
+        rotate: 39,
+        cutout: { x: -2, y: -1, width: 10, height: 15 }
+      }
+    },
+    { width: 22, height: 30 }
+  ),
+  withMapGeometry(
+    {
+      id: "B",
+      cemeteryId: "sligo-town-cemetery",
+      name: "Block B",
+      physicalStrips: 10,
+      rowsPerStrip: 2,
+      stripRowCounts: rangeRecord(10, 2),
+      blockTemplate: "standard-2",
+      logicalRows: 20,
+      rowPlotCounts: rangeRecord(20, 18),
+      rowRules: [{ rows: [1, 20], plotsPerRow: 18 }],
+      calibration: {
+        x: 91.1,
+        y: 31.7,
+        width: 109,
+        height: 60,
+        rotate: 39,
+        cutout: { x: 0, y: 0, width: 0, height: 0 }
+      }
+    },
+    { width: 24, height: 15 }
+  ),
+  withMapGeometry(
+    {
+      id: "C",
+      cemeteryId: "sligo-town-cemetery",
+      name: "Block C",
+      physicalStrips: 1,
+      rowsPerStrip: 2,
+      stripRowCounts: { "1": 2 },
+      blockTemplate: "standard-2",
+      logicalRows: 2,
+      rowPlotCounts: { "1": 32, "2": 32 },
+      rowRules: [{ rows: [1, 2], plotsPerRow: 32 }],
+      calibration: {
+        x: 100.3,
+        y: 26.4,
+        width: 111,
+        height: 63,
+        rotate: 39,
+        cutout: { x: 0, y: 0, width: 0, height: 0 }
+      }
+    },
+    { width: 24, height: 16 }
+  )
+];
+
+export function getDefaultRowPlotCounts(rowCount: number, blockId: string) {
+  return Object.fromEntries(
+    Array.from({ length: rowCount }, (_, index) => {
+      const row = index + 1;
+      return [String(row), blockId === "A" && row <= 2 ? 26 : 32];
+    })
+  );
+}
+
+export function normalizeStripRowCounts(block: Partial<PrototypeBlock>) {
+  const physicalStrips = Math.min(40, Math.max(1, Number(block.physicalStrips) || 1));
+  const rowsPerStrip = Math.min(5, Math.max(1, Number(block.rowsPerStrip) || 2));
+  const existing = block.stripRowCounts ?? {};
+
+  return Object.fromEntries(
+    Array.from({ length: physicalStrips }, (_, index) => {
+      const strip = String(index + 1);
+      return [strip, Math.min(5, Math.max(1, Number(existing[strip]) || rowsPerStrip))];
+    })
+  );
+}
+
+export function getLogicalRowsFromStrips(block: Partial<PrototypeBlock>) {
+  return Object.values(normalizeStripRowCounts(block)).reduce((total, count) => total + Number(count || 0), 0);
+}
+
+export function normalizeRowPlotCounts(block: PrototypeBlock, nextRowCount = block.logicalRows || 2): PrototypeBlock {
+  const rowsPerStrip = Math.min(5, Math.max(1, Number(block.rowsPerStrip) || 2));
+  const physicalStrips = Math.min(40, Math.max(1, Number(block.physicalStrips) || Math.ceil(nextRowCount / rowsPerStrip)));
+  const stripRowCounts = normalizeStripRowCounts({ ...block, physicalStrips, rowsPerStrip });
+  const logicalRows = Math.min(160, Math.max(1, Number(nextRowCount) || getLogicalRowsFromStrips({ ...block, stripRowCounts })));
+  const defaults = getDefaultRowPlotCounts(logicalRows, block.id);
+  const rowPlotCounts = Object.fromEntries(
+    Array.from({ length: logicalRows }, (_, index) => {
+      const row = String(index + 1);
+      return [row, Math.min(200, Math.max(1, Number(block.rowPlotCounts?.[row]) || defaults[row]))];
+    })
+  );
+
+  return {
+    ...block,
+    rowsPerStrip,
+    physicalStrips,
+    stripRowCounts,
+    logicalRows,
+    rowPlotCounts,
+    rowRules: block.rowRules?.length ? block.rowRules : [{ rows: [1, logicalRows], plotsPerRow: 32 }],
+    calibration: {
+      ...block.calibration,
+      cutout: block.calibration.cutout ?? { x: 0, y: 0, width: 0, height: 0 }
+    },
+    x: Number(block.x) || block.calibration.x,
+    y: Number(block.y) || block.calibration.y,
+    width: Number(block.width) || 20,
+    height: Number(block.height) || 18,
+    rotate: Number(block.rotate) || block.calibration.rotate
+  };
+}
+
+export function getBlockPlotTotal(block: PrototypeBlock) {
+  return Object.values(block.rowPlotCounts).reduce((total, count) => total + Number(count || 0), 0);
+}
+
+export function createPrototypeBlock(id: string, existingCount = 0): PrototypeBlock {
+  return normalizeRowPlotCounts({
+    id,
+    cemeteryId: "sligo-town-cemetery",
+    name: `Block ${id}`,
+    physicalStrips: 1,
+    rowsPerStrip: 2,
+    stripRowCounts: { "1": 2 },
+    blockTemplate: "standard-2",
+    logicalRows: 2,
+    rowPlotCounts: getDefaultRowPlotCounts(2, id),
+    rowRules: [{ rows: [1, 2], plotsPerRow: 32 }],
+    calibration: {
+      x: Math.min(115, Math.max(-15, 75.8 + existingCount * 5)),
+      y: Math.min(115, Math.max(-15, 22.2 + existingCount * 5)),
+      width: 90,
+      height: 70,
+      rotate: 39,
+      cutout: { x: 0, y: 0, width: 0, height: 0 }
+    },
+    x: Math.min(115, Math.max(-15, 75.8 + existingCount * 5)),
+    y: Math.min(115, Math.max(-15, 22.2 + existingCount * 5)),
+    width: 20,
+    height: 18,
+    rotate: 39
+  });
 }
 
 export const prototypeEntrances: PrototypeEntrance[] = [

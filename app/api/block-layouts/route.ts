@@ -3,26 +3,8 @@ import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 
 type BlockLayoutPayload = {
   cemeterySlug?: string;
-  blocks?: Array<{
-    id: string;
-    name: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    rotate: number;
-    blockType?: string;
-    customTypeName?: string;
-    stripCount?: number;
-    rowCount?: number;
-    plotsPerRow?: number;
-    firstPlotNumber?: number;
-    rowPrefix?: string;
-    stripPrefix?: string;
-    numberingDirection?: string;
-    rowOrientation?: string;
-    notes?: string;
-  }>;
+  blockVisualMode?: "strips" | "rows" | "headstones";
+  blocks?: Array<Record<string, unknown>>;
 };
 
 const defaultCemeterySlug = "sligo-town-cemetery";
@@ -40,10 +22,13 @@ function isValidBlockPayload(payload: BlockLayoutPayload) {
         Number.isFinite(block.width) &&
         Number.isFinite(block.height) &&
         Number.isFinite(block.rotate) &&
-        (block.stripCount === undefined || Number.isFinite(block.stripCount)) &&
-        (block.rowCount === undefined || Number.isFinite(block.rowCount)) &&
-        (block.plotsPerRow === undefined || Number.isFinite(block.plotsPerRow)) &&
-        (block.firstPlotNumber === undefined || Number.isFinite(block.firstPlotNumber))
+        typeof block.calibration === "object" &&
+        block.calibration !== null &&
+        Number.isFinite((block.calibration as { width?: unknown }).width) &&
+        Number.isFinite((block.calibration as { height?: unknown }).height) &&
+        Number.isFinite((block.calibration as { rotate?: unknown }).rotate) &&
+        Number.isFinite(block.physicalStrips) &&
+        Number.isFinite(block.logicalRows)
     )
   );
 }

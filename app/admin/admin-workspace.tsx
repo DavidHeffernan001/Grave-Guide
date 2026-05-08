@@ -1,10 +1,10 @@
 "use client";
 
-import { RotateCcw, Save, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  blockPolygonToLatLngs,
   blockGuideLineLatLngs,
+  blockPolygonToLatLngs,
   cemeteryPathPercentLines,
   defaultMapCalibration,
   normalizeCalibration,
@@ -13,43 +13,42 @@ import {
   type MapCalibration
 } from "@/lib/map-geometry";
 import {
-  normalizePrototypeBlock,
+  createPrototypeBlock,
+  getBlockPlotTotal,
+  getLogicalRowsFromStrips,
+  normalizeRowPlotCounts,
+  normalizeStripRowCounts,
   prototypeBlocks,
   prototypeEntrances,
   prototypeRecords,
   type PrototypeBlock,
-  type PrototypeBlockDirection,
-  type PrototypeBlockOrientation,
-  type PrototypeBlockType
+  type PrototypeBlockRowRule
 } from "@/lib/prototype-data";
 
 const storageKey = "graveguide-admin-blocks-v1";
+const legacyStorageKey = "graveguide-sligo-block-layout";
 const adminTokenKey = "graveguide-admin-token";
 type LeafletModule = typeof import("leaflet");
 type CalibrationPayload = { calibration?: CalibrationApiRow | null };
-const blockTypeOptions: Array<{ value: PrototypeBlockType; label: string }> = [
-  { value: "standard", label: "Standard burial" },
-  { value: "lawn", label: "Lawn graves" },
-  { value: "cremation", label: "Cremation" },
-  { value: "family", label: "Family plots" },
-  { value: "reserved", label: "Reserved" },
-  { value: "custom", label: "Custom type" }
-];
-
-const numberingOptions: Array<{ value: PrototypeBlockDirection; label: string }> = [
-  { value: "left-to-right", label: "Left to right" },
-  { value: "right-to-left", label: "Right to left" },
-  { value: "top-to-bottom", label: "Top to bottom" },
-  { value: "bottom-to-top", label: "Bottom to top" }
-];
+type VisualMode = "strips" | "rows" | "headstones";
 
 function cloneBlocks() {
-  return prototypeBlocks.map((block) => normalizePrototypeBlock({ ...block }));
+  return prototypeBlocks.map((block) => normalizeRowPlotCounts(JSON.parse(JSON.stringify(block)) as PrototypeBlock));
+}
+
+function getNextBlockId(blocks: PrototypeBlock[]) {
+  const used = new Set(blocks.map((block) => block.id));
+  return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").find((letter) => !used.has(letter)) ?? `B${blocks.length + 1}`;
+}
+
+function normaliseLoadedBlocks(blocks: PrototypeBlock[]) {
+  return blocks.map((block) => normalizeRowPlotCounts(block, block.logicalRows));
 }
 
 export function AdminWorkspace() {
   const [blocks, setBlocks] = useState<PrototypeBlock[]>(cloneBlocks);
   const [selectedBlockId, setSelectedBlockId] = useState(prototypeBlocks[0]?.id ?? "A");
+  const [blockVisualMode, setBlockVisualMode] = useState<VisualMode>("strips");
   const [status, setStatus] = useState("Unsaved local workspace");
   const [adminToken, setAdminToken] = useState("");
   const [calibration, setCalibration] = useState<MapCalibration>(defaultMapCalibration);
@@ -71,18 +70,24 @@ export function AdminWorkspace() {
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
   const leafletRef = useRef<LeafletModule | null>(null);
 
+  const selectedBlock = useMemo(
+    () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
+    [blocks, selectedBlockId]
+  );
+
   useEffect(() => {
     setAdminToken(window.localStorage.getItem(adminTokenKey) ?? "");
 
     async function loadRemoteLayout() {
       try {
         const response = await fetch("/api/block-layouts?cemetery=sligo-town-cemetery");
-        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null; source?: string };
+        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null; blockVisualMode?: VisualMode; source?: string };
 
         if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
-          const normalizedBlocks = payload.blocks.map((block) => normalizePrototypeBlock(block));
-          setBlocks(normalizedBlocks);
-          setSelectedBlockId(normalizedBlocks[0].id);
+          const loadedBlocks = normaliseLoadedBlocks(payload.blocks);
+          setBlocks(loadedBlocks);
+          setSelectedBlockId(loadedBlocks[0].id);
+          setBlockVisualMode(payload.blockVisualMode ?? "strips");
           setStatus(payload.source === "supabase" ? "Loaded Supabase layout" : "Loaded fallback layout");
           return true;
         }
@@ -96,16 +101,17 @@ export function AdminWorkspace() {
     loadRemoteLayout().then((loadedRemote) => {
       if (loadedRemote) return;
 
-      const stored = window.localStorage.getItem(storageKey);
-
+      const stored = window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey);
       if (!stored) return;
 
       try {
-          const parsed = JSON.parse(stored) as PrototypeBlock[];
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const normalizedBlocks = parsed.map((block) => normalizePrototypeBlock(block));
-            setBlocks(normalizedBlocks);
-            setSelectedBlockId(normalizedBlocks[0].id);
+        const parsed = JSON.parse(stored) as PrototypeBlock[] | { selectedBlockId?: string; blockVisualMode?: VisualMode; blocks?: PrototypeBlock[] };
+        const parsedBlocks = Array.isArray(parsed) ? parsed : parsed.blocks;
+        if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
+          const loadedBlocks = normaliseLoadedBlocks(parsedBlocks);
+          setBlocks(loadedBlocks);
+          setSelectedBlockId(Array.isArray(parsed) ? loadedBlocks[0].id : parsed.selectedBlockId ?? loadedBlocks[0].id);
+          setBlockVisualMode(Array.isArray(parsed) ? "strips" : parsed.blockVisualMode ?? "strips");
           setStatus("Loaded saved browser layout");
         }
       } catch {
@@ -138,18 +144,6 @@ export function AdminWorkspace() {
 
     void loadCalibration();
   }, []);
-
-  const selectedBlock = useMemo(
-    () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
-    [blocks, selectedBlockId]
-  );
-  const selectedBlockTypeLabel =
-    selectedBlock.blockType === "custom"
-      ? selectedBlock.customTypeName || "Custom type"
-      : blockTypeOptions.find((option) => option.value === selectedBlock.blockType)?.label ?? "Standard burial";
-  const totalConfiguredPlots = selectedBlock.rowCount * selectedBlock.plotsPerRow * Math.max(1, selectedBlock.stripCount);
-  const rowPreviewCount = Math.min(selectedBlock.rowCount, 12);
-  const stripPreviewCount = Math.min(selectedBlock.stripCount, 6);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,7 +191,7 @@ export function AdminWorkspace() {
     const map = mapRef.current;
     const layer = layerRef.current;
 
-    if (!mapReady || !L || !map || !layer) {
+    if (!mapReady || !L || !map || !layer || !selectedBlock) {
       return;
     }
 
@@ -215,8 +209,8 @@ export function AdminWorkspace() {
       const isSelected = block.id === selectedBlock.id;
 
       L.polygon(blockPolygonToLatLngs(block, calibration, 25), {
-        color: isSelected ? "#b46b34" : "#587b70",
-        fillColor: isSelected ? "#b46b34" : "#2f6f58",
+        color: isSelected ? "#6b2bb2" : "#587b70",
+        fillColor: isSelected ? "#8d3fd1" : "#2f6f58",
         fillOpacity: isSelected ? 0.18 : 0.13,
         weight: isSelected ? 2 : 1
       })
@@ -225,12 +219,12 @@ export function AdminWorkspace() {
         .addTo(layer);
 
       if (isSelected) {
-        blockGuideLineLatLngs(block, calibration, 25).forEach((line) => {
+        blockGuideLineLatLngs(block, calibration, 25, blockVisualMode).forEach((line) => {
           L.polyline(line, {
-            color: "#174c3c",
-            dashArray: block.rowOrientation === "vertical" ? "2 5" : "4 5",
+            color: "#6b2bb2",
+            dashArray: blockVisualMode === "headstones" ? "2 5" : undefined,
             interactive: false,
-            opacity: 0.38,
+            opacity: 0.45,
             weight: 1
           }).addTo(layer);
         });
@@ -248,42 +242,153 @@ export function AdminWorkspace() {
         .bindTooltip(entrance.name)
         .addTo(layer);
     });
-  }, [blocks, calibration, mapReady, selectedBlock.id]);
+  }, [blocks, blockVisualMode, calibration, mapReady, selectedBlock]);
 
-  function updateSelectedBlock<K extends keyof PrototypeBlock>(field: K, value: PrototypeBlock[K]) {
-    setBlocks((currentBlocks) =>
-      currentBlocks.map((block) => (block.id === selectedBlock.id ? { ...block, [field]: value } : block))
-    );
-    if (field === "id" && typeof value === "string") {
-      setSelectedBlockId(value);
-    }
+  function updateBlock(nextBlock: PrototypeBlock) {
+    setBlocks((currentBlocks) => currentBlocks.map((block) => (block.id === nextBlock.id ? normalizeRowPlotCounts(nextBlock) : block)));
     setStatus("Layout changed");
   }
 
+  function updateBlockCalibration(field: "width" | "height" | "rotate", value: number) {
+    updateBlock({
+      ...selectedBlock,
+      calibration: { ...selectedBlock.calibration, [field]: value },
+      rotate: field === "rotate" ? value : selectedBlock.rotate
+    });
+  }
+
+  function updateBlockPosition(field: "x" | "y", value: number) {
+    updateBlock({
+      ...selectedBlock,
+      [field]: value,
+      calibration: { ...selectedBlock.calibration, [field]: value }
+    });
+  }
+
+  function updateBlockMapSize(field: "width" | "height", value: number) {
+    updateBlock({ ...selectedBlock, [field]: value });
+  }
+
+  function updateBlockCutout(field: keyof PrototypeBlock["calibration"]["cutout"], value: number) {
+    updateBlock({
+      ...selectedBlock,
+      calibration: {
+        ...selectedBlock.calibration,
+        cutout: { ...selectedBlock.calibration.cutout, [field]: value }
+      }
+    });
+  }
+
+  function updateBlockTemplate(value: string) {
+    const rowsPerStrip = value === "irregular" ? Math.max(2, selectedBlock.rowsPerStrip || 2) : Number(value);
+    const stripRowCounts = Object.fromEntries(Array.from({ length: selectedBlock.physicalStrips }, (_, index) => [String(index + 1), rowsPerStrip]));
+    const nextBlock = {
+      ...selectedBlock,
+      blockTemplate: value === "irregular" ? "irregular" : `standard-${rowsPerStrip}`,
+      rowsPerStrip,
+      stripRowCounts,
+      calibration: {
+        ...selectedBlock.calibration,
+        polygon:
+          value === "irregular" && !selectedBlock.calibration.polygon
+            ? [
+                { x: 0, y: 0 },
+                { x: 100, y: 8 },
+                { x: 92, y: 100 },
+                { x: 4, y: 86 }
+              ]
+            : selectedBlock.calibration.polygon
+      }
+    };
+    updateBlock(normalizeRowPlotCounts(nextBlock, getLogicalRowsFromStrips(nextBlock)));
+  }
+
+  function updatePhysicalStrips(value: number) {
+    const physicalStrips = Math.min(40, Math.max(1, value || 1));
+    const nextBlock = {
+      ...selectedBlock,
+      physicalStrips,
+      stripRowCounts: normalizeStripRowCounts({ ...selectedBlock, physicalStrips })
+    };
+    updateBlock(normalizeRowPlotCounts(nextBlock, getLogicalRowsFromStrips(nextBlock)));
+  }
+
+  function updateLogicalRows(value: number) {
+    updateBlock(normalizeRowPlotCounts(selectedBlock, Math.min(160, Math.max(1, value || 1))));
+  }
+
+  function updateStripRowCount(strip: string, value: number) {
+    const nextBlock = {
+      ...selectedBlock,
+      stripRowCounts: {
+        ...selectedBlock.stripRowCounts,
+        [strip]: Math.min(5, Math.max(1, value || 1))
+      },
+      blockTemplate: "irregular"
+    };
+    updateBlock(normalizeRowPlotCounts(nextBlock, getLogicalRowsFromStrips(nextBlock)));
+  }
+
+  function updateRowPlotCount(row: string, value: number) {
+    updateBlock({
+      ...selectedBlock,
+      rowPlotCounts: {
+        ...selectedBlock.rowPlotCounts,
+        [row]: Math.min(200, Math.max(1, value || 1))
+      }
+    });
+  }
+
+  function updateRowRule(index: number, field: "start" | "end" | "plotsPerRow", value: number) {
+    const rowRules = selectedBlock.rowRules.map((rule, ruleIndex) => {
+      if (ruleIndex !== index) return rule;
+      const rows: [number, number] = [...rule.rows];
+      if (field === "start") rows[0] = Math.min(selectedBlock.logicalRows, Math.max(1, value || 1));
+      if (field === "end") rows[1] = Math.min(selectedBlock.logicalRows, Math.max(rows[0], value || rows[0]));
+      return {
+        rows,
+        plotsPerRow: field === "plotsPerRow" ? Math.min(200, Math.max(1, value || 1)) : rule.plotsPerRow
+      };
+    });
+    const rowPlotCounts = { ...selectedBlock.rowPlotCounts };
+    rowRules.forEach((rule) => {
+      for (let row = rule.rows[0]; row <= rule.rows[1]; row += 1) {
+        rowPlotCounts[String(row)] = rule.plotsPerRow;
+      }
+    });
+    updateBlock({ ...selectedBlock, rowRules, rowPlotCounts });
+  }
+
+  function addRowRule() {
+    const newRule: PrototypeBlockRowRule = { rows: [1, selectedBlock.logicalRows], plotsPerRow: 32 };
+    updateBlock({ ...selectedBlock, rowRules: [...selectedBlock.rowRules, newRule] });
+  }
+
+  function deleteRowRule(index: number) {
+    const rowRules = selectedBlock.rowRules.filter((_, ruleIndex) => ruleIndex !== index);
+    updateBlock({ ...selectedBlock, rowRules: rowRules.length ? rowRules : [{ rows: [1, selectedBlock.logicalRows], plotsPerRow: 32 }] });
+  }
+
   function updateCalibration(field: keyof MapCalibration, value: number) {
-    setCalibration((current) => ({
-      ...current,
-      [field]: value
-    }));
+    setCalibration((current) => ({ ...current, [field]: value }));
     setCalibrationStatus("Calibration changed");
   }
 
   function updateRecordForm(field: keyof typeof recordForm, value: string) {
-    setRecordForm((current) => ({
-      ...current,
-      [field]: value
-    }));
+    setRecordForm((current) => ({ ...current, [field]: value }));
     setRecordStatus("Record form changed");
   }
 
   async function saveLayout() {
     window.localStorage.setItem(storageKey, JSON.stringify(blocks));
+    window.localStorage.setItem(legacyStorageKey, JSON.stringify({ selectedBlockId, blockVisualMode, blocks }));
     setStatus("Saved to this browser");
 
     try {
       const response = await fetch("/api/block-layouts", {
         body: JSON.stringify({
           cemeterySlug: "sligo-town-cemetery",
+          blockVisualMode,
           blocks
         }),
         headers: {
@@ -383,40 +488,23 @@ export function AdminWorkspace() {
     const defaults = cloneBlocks();
     setBlocks(defaults);
     setSelectedBlockId(defaults[0].id);
+    setBlockVisualMode("strips");
     window.localStorage.removeItem(storageKey);
+    window.localStorage.removeItem(legacyStorageKey);
     setStatus("Reset to prototype defaults");
   }
 
   function addBlock() {
-    const nextLetter = String.fromCharCode(65 + blocks.length);
-    const newBlock: PrototypeBlock = normalizePrototypeBlock({
-      id: nextLetter,
-      name: `Block ${nextLetter}`,
-      x: 58,
-      y: 42,
-      width: 20,
-      height: 18,
-      rotate: 39,
-      blockType: "standard",
-      rowCount: 10,
-      stripCount: 2,
-      plotsPerRow: 24,
-      firstPlotNumber: 1,
-      rowPrefix: "R",
-      stripPrefix: "S",
-      numberingDirection: "left-to-right",
-      rowOrientation: "horizontal",
-      notes: ""
-    });
-
+    const nextId = getNextBlockId(blocks);
+    const newBlock = createPrototypeBlock(nextId, blocks.length);
     setBlocks((currentBlocks) => [...currentBlocks, newBlock]);
     setSelectedBlockId(newBlock.id);
     setStatus(`Added ${newBlock.name}`);
   }
 
   function deleteSelectedBlock() {
-    if (blocks.length <= 1) {
-      setStatus("Keep at least one block");
+    if (blocks.length <= 1 || selectedBlock.id === "A") {
+      setStatus("Keep Block A and at least one block");
       return;
     }
 
@@ -426,78 +514,44 @@ export function AdminWorkspace() {
     setStatus(`Deleted ${selectedBlock.name}`);
   }
 
+  const templateValue = selectedBlock.blockTemplate === "irregular" ? "irregular" : String(selectedBlock.rowsPerStrip);
+  const stripEntries = Object.entries(selectedBlock.stripRowCounts);
+  const rowEntries = Object.entries(selectedBlock.rowPlotCounts);
+
   return (
     <section className="admin-layout">
       <aside className="admin-sidebar">
-        <h1>Sligo Town Cemetery</h1>
-        <p>Configuration workspace rebuilt from the original prototype. Changes save locally for now.</p>
+        <div className="admin-sidebar-title">
+          <span>Admin workspace</span>
+          <h1>Map calibration</h1>
+        </div>
+        <p>Original prototype block rules restored: physical strips, row templates, irregular strip rows, cut-outs, and plot counts.</p>
         <label className="admin-token-field">
           Admin token
-          <input
-            onChange={(event) => setAdminToken(event.target.value)}
-            placeholder="Optional save token"
-            type="password"
-            value={adminToken}
-          />
+          <input onChange={(event) => setAdminToken(event.target.value)} placeholder="Optional save token" type="password" value={adminToken} />
         </label>
         <div className="calibration-editor">
           <strong>Real map calibration</strong>
           <span>{calibrationStatus}</span>
           <label>
             Centre latitude
-            <input
-              onChange={(event) => updateCalibration("centerLatitude", Number(event.target.value))}
-              step="0.00001"
-              type="number"
-              value={calibration.centerLatitude}
-            />
+            <input onChange={(event) => updateCalibration("centerLatitude", Number(event.target.value))} step="0.00001" type="number" value={calibration.centerLatitude} />
           </label>
           <label>
             Centre longitude
-            <input
-              onChange={(event) => updateCalibration("centerLongitude", Number(event.target.value))}
-              step="0.00001"
-              type="number"
-              value={calibration.centerLongitude}
-            />
+            <input onChange={(event) => updateCalibration("centerLongitude", Number(event.target.value))} step="0.00001" type="number" value={calibration.centerLongitude} />
           </label>
           <label>
             Overlay width metres
-            <input
-              onChange={(event) => updateCalibration("overlayWidthMeters", Number(event.target.value))}
-              step="1"
-              type="number"
-              value={calibration.overlayWidthMeters}
-            />
+            <input onChange={(event) => updateCalibration("overlayWidthMeters", Number(event.target.value))} step="1" type="number" value={calibration.overlayWidthMeters} />
           </label>
           <label>
             Overlay height metres
-            <input
-              onChange={(event) => updateCalibration("overlayHeightMeters", Number(event.target.value))}
-              step="1"
-              type="number"
-              value={calibration.overlayHeightMeters}
-            />
+            <input onChange={(event) => updateCalibration("overlayHeightMeters", Number(event.target.value))} step="1" type="number" value={calibration.overlayHeightMeters} />
           </label>
           <button onClick={() => void saveCalibration()} type="button">
             Save map calibration
           </button>
-        </div>
-        <div className="admin-stat">
-          <strong>{blocks.length}</strong>
-          <span>Blocks</span>
-        </div>
-        <div className="admin-stat">
-          <strong>{blocks.reduce((total, block) => total + block.rowCount * block.plotsPerRow * Math.max(1, block.stripCount), 0)}</strong>
-          <span>Configured plots</span>
-        </div>
-        <div className="admin-stat">
-          <strong>{prototypeRecords.length}</strong>
-          <span>Demo records</span>
-        </div>
-        <div className="admin-stat">
-          <strong>{prototypeEntrances.length}</strong>
-          <span>QR entrances</span>
         </div>
         <div className="record-editor">
           <strong>Add grave record</strong>
@@ -505,19 +559,11 @@ export function AdminWorkspace() {
           <div className="record-editor-grid">
             <label>
               First names
-              <input
-                onChange={(event) => updateRecordForm("givenNames", event.target.value)}
-                placeholder="Andrew"
-                value={recordForm.givenNames}
-              />
+              <input onChange={(event) => updateRecordForm("givenNames", event.target.value)} placeholder="Andrew" value={recordForm.givenNames} />
             </label>
             <label>
               Family name
-              <input
-                onChange={(event) => updateRecordForm("familyName", event.target.value)}
-                placeholder="Hosie"
-                value={recordForm.familyName}
-              />
+              <input onChange={(event) => updateRecordForm("familyName", event.target.value)} placeholder="Hosie" value={recordForm.familyName} />
             </label>
             <label>
               Born
@@ -529,11 +575,7 @@ export function AdminWorkspace() {
             </label>
             <label>
               Plot
-              <input
-                onChange={(event) => updateRecordForm("plotReference", event.target.value)}
-                placeholder="A-01-001"
-                value={recordForm.plotReference}
-              />
+              <input onChange={(event) => updateRecordForm("plotReference", event.target.value)} placeholder="A-01-001" value={recordForm.plotReference} />
             </label>
             <label>
               Block
@@ -542,11 +584,7 @@ export function AdminWorkspace() {
           </div>
           <label>
             Notes
-            <textarea
-              onChange={(event) => updateRecordForm("biography", event.target.value)}
-              placeholder="Short public note"
-              value={recordForm.biography}
-            />
+            <textarea onChange={(event) => updateRecordForm("biography", event.target.value)} placeholder="Short public note" value={recordForm.biography} />
           </label>
           <button onClick={() => void saveRecord()} type="button">
             Save grave record
@@ -555,258 +593,219 @@ export function AdminWorkspace() {
       </aside>
 
       <section className="admin-board">
-        <div className="admin-toolbar">
-          <button onClick={() => void saveLayout()} type="button">
-            <Save size={16} aria-hidden="true" />
-            Save layout
-          </button>
-          <button onClick={addBlock} type="button">
-            <SlidersHorizontal size={16} aria-hidden="true" />
-            Add block
-          </button>
-          <button onClick={resetLayout} type="button">
-            <RotateCcw size={16} aria-hidden="true" />
-            Reset
-          </button>
-          <button onClick={deleteSelectedBlock} type="button">
-            <Trash2 size={16} aria-hidden="true" />
-            Delete selected
-          </button>
-          <span className="admin-save-status">{status}</span>
+        <div className="admin-board-head">
+          <div className="admin-sidebar-title">
+            <span>Admin tools active</span>
+            <h2>Sligo Town Cemetery</h2>
+          </div>
+          <div className="admin-toolbar">
+            <button onClick={() => void saveLayout()} type="button">
+              <Save size={16} aria-hidden="true" />
+              Save layout
+            </button>
+            <button onClick={resetLayout} type="button">
+              <RotateCcw size={16} aria-hidden="true" />
+              Reset
+            </button>
+            <button onClick={deleteSelectedBlock} type="button">
+              <Trash2 size={16} aria-hidden="true" />
+              Delete selected
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-summary">
+          <div>
+            <strong>1 cemetery</strong>
+            <span>Sligo Town Cemetery</span>
+          </div>
+          <div>
+            <strong>{prototypeEntrances.length} entrances</strong>
+            <span>Main QR points</span>
+          </div>
+          <div>
+            <strong>{prototypeRecords.length} records</strong>
+            <span>Test burial data</span>
+          </div>
         </div>
 
         <div className="admin-workspace-grid">
           <div className="admin-map">
             <div className="admin-leaflet-map" ref={mapContainerRef} aria-label="Admin Leaflet layout map" />
+            <span className="admin-save-status">{status}</span>
           </div>
 
           <aside className="block-editor">
-            <div className="block-editor-head">
-              <div>
-                <span>Selected block</span>
-                <h2>{selectedBlock.name}</h2>
-              </div>
-              <strong>{selectedBlockTypeLabel}</strong>
-            </div>
+            <section className="block-manager">
+              <h3>Blocks</h3>
+              <label>
+                Active block
+                <select onChange={(event) => setSelectedBlockId(event.target.value)} value={selectedBlock.id}>
+                  {blocks.map((block) => (
+                    <option key={block.id} value={block.id}>
+                      {block.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="pill-action" onClick={addBlock} type="button">
+                <Plus size={17} aria-hidden="true" />
+                Add block
+              </button>
+              <div className="editing-pill">Editing {selectedBlock.name}</div>
+            </section>
 
-            <div className="block-config-summary">
-              <span>{selectedBlock.stripCount} strips</span>
-              <span>{selectedBlock.rowCount} rows</span>
-              <span>{totalConfiguredPlots} plots</span>
-            </div>
-
-            <div className="block-config-preview" data-orientation={selectedBlock.rowOrientation}>
-              {Array.from({ length: stripPreviewCount }, (_, stripIndex) => (
-                <div className="block-strip-preview" key={`strip-${stripIndex}`}>
-                  <span>{selectedBlock.stripPrefix}{stripIndex + 1}</span>
-                  <div>
-                    {Array.from({ length: rowPreviewCount }, (_, rowIndex) => (
-                      <i key={`row-${stripIndex}-${rowIndex}`} />
-                    ))}
-                  </div>
+            <section className="editor-section">
+              <div className="block-editor-head">
+                <div>
+                  <span>Block editor</span>
+                  <h2>{selectedBlock.name}</h2>
                 </div>
-              ))}
-            </div>
-
-            <div className="editor-section">
-              <strong>Identity</strong>
+                <strong>{getBlockPlotTotal(selectedBlock)} plots</strong>
+              </div>
+              <div className="block-config-summary">
+                <span>{selectedBlock.physicalStrips} strips</span>
+                <span>{selectedBlock.logicalRows} rows</span>
+                <span>{selectedBlock.blockTemplate}</span>
+              </div>
               <label>
-                Block code
-                <input
-                  onChange={(event) => updateSelectedBlock("id", event.target.value.toUpperCase())}
-                  value={selectedBlock.id}
-                />
-              </label>
-              <label>
-                Display name
-                <input onChange={(event) => updateSelectedBlock("name", event.target.value)} value={selectedBlock.name} />
-              </label>
-              <label>
-                Block type
-                <select
-                  onChange={(event) => updateSelectedBlock("blockType", event.target.value as PrototypeBlockType)}
-                  value={selectedBlock.blockType}
-                >
-                  {blockTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                Visual mode
+                <select onChange={(event) => setBlockVisualMode(event.target.value as VisualMode)} value={blockVisualMode}>
+                  <option value="strips">Strips</option>
+                  <option value="rows">Rows</option>
+                  <option value="headstones">Headstones</option>
                 </select>
               </label>
-              {selectedBlock.blockType === "custom" ? (
-                <label>
-                  Custom type name
-                  <input
-                    onChange={(event) => updateSelectedBlock("customTypeName", event.target.value)}
-                    placeholder="e.g. Children's memorial"
-                    value={selectedBlock.customTypeName ?? ""}
-                  />
-                </label>
-              ) : null}
-            </div>
+            </section>
 
-            <div className="editor-section">
-              <strong>Block layout</strong>
+            <section className="editor-section">
+              <strong>Prototype calibration</strong>
               <label>
-                Strip count
-                <input
-                  max="12"
-                  min="1"
-                  onChange={(event) => updateSelectedBlock("stripCount", Number(event.target.value))}
-                  type="number"
-                  value={selectedBlock.stripCount}
-                />
+                Width
+                <input max="180" min="20" onChange={(event) => updateBlockCalibration("width", Number(event.target.value))} type="range" value={selectedBlock.calibration.width} />
+                <span>{Math.round(selectedBlock.calibration.width)} px</span>
               </label>
               <label>
-                Row count
-                <input
-                  max="80"
-                  min="1"
-                  onChange={(event) => updateSelectedBlock("rowCount", Number(event.target.value))}
-                  type="number"
-                  value={selectedBlock.rowCount}
-                />
+                Height
+                <input max="180" min="20" onChange={(event) => updateBlockCalibration("height", Number(event.target.value))} type="range" value={selectedBlock.calibration.height} />
+                <span>{Math.round(selectedBlock.calibration.height)} px</span>
               </label>
               <label>
-                Plots per row
-                <input
-                  max="120"
-                  min="1"
-                  onChange={(event) => updateSelectedBlock("plotsPerRow", Number(event.target.value))}
-                  type="number"
-                  value={selectedBlock.plotsPerRow}
-                />
+                Rotate
+                <input max="90" min="-90" onChange={(event) => updateBlockCalibration("rotate", Number(event.target.value))} type="range" value={selectedBlock.calibration.rotate} />
+                <span>{Math.round(selectedBlock.calibration.rotate)} deg</span>
               </label>
-              <label>
-                First plot number
-                <input
-                  min="1"
-                  onChange={(event) => updateSelectedBlock("firstPlotNumber", Number(event.target.value))}
-                  type="number"
-                  value={selectedBlock.firstPlotNumber}
-                />
-              </label>
-              <label>
-                Row orientation
-                <select
-                  onChange={(event) => updateSelectedBlock("rowOrientation", event.target.value as PrototypeBlockOrientation)}
-                  value={selectedBlock.rowOrientation}
-                >
-                  <option value="horizontal">Horizontal rows</option>
-                  <option value="vertical">Vertical rows</option>
-                </select>
-              </label>
-              <label>
-                Numbering direction
-                <select
-                  onChange={(event) => updateSelectedBlock("numberingDirection", event.target.value as PrototypeBlockDirection)}
-                  value={selectedBlock.numberingDirection}
-                >
-                  {numberingOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Row prefix
-                <input onChange={(event) => updateSelectedBlock("rowPrefix", event.target.value)} value={selectedBlock.rowPrefix} />
-              </label>
-              <label>
-                Strip prefix
-                <input onChange={(event) => updateSelectedBlock("stripPrefix", event.target.value)} value={selectedBlock.stripPrefix} />
-              </label>
-            </div>
+              <div className="cutout-grid">
+                {(["x", "y", "width", "height"] as const).map((field) => (
+                  <label key={field}>
+                    Cut-out {field}
+                    <input
+                      max={field === "width" || field === "height" ? 60 : 40}
+                      min={field === "width" || field === "height" ? 0 : -40}
+                      onChange={(event) => updateBlockCutout(field, Number(event.target.value))}
+                      type="range"
+                      value={selectedBlock.calibration.cutout[field]}
+                    />
+                    <span>{Math.round(selectedBlock.calibration.cutout[field])}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
 
-            <div className="editor-section">
-              <strong>Map overlay</strong>
+            <section className="editor-section">
+              <strong>Map placement</strong>
               <label>
                 X position
-                <input
-                  max="110"
-                  min="0"
-                  onChange={(event) => updateSelectedBlock("x", Number(event.target.value))}
-                  type="range"
-                  value={selectedBlock.x}
-                />
+                <input max="115" min="-15" onChange={(event) => updateBlockPosition("x", Number(event.target.value))} type="range" value={selectedBlock.x} />
                 <span>{selectedBlock.x.toFixed(1)}%</span>
               </label>
               <label>
                 Y position
-                <input
-                  max="100"
-                  min="0"
-                  onChange={(event) => updateSelectedBlock("y", Number(event.target.value))}
-                  type="range"
-                  value={selectedBlock.y}
-                />
+                <input max="115" min="-15" onChange={(event) => updateBlockPosition("y", Number(event.target.value))} type="range" value={selectedBlock.y} />
                 <span>{selectedBlock.y.toFixed(1)}%</span>
               </label>
-              <label>
-                Width
-                <input
-                  max="40"
-                  min="8"
-                  onChange={(event) => updateSelectedBlock("width", Number(event.target.value))}
-                  type="range"
-                  value={selectedBlock.width}
-                />
-                <span>{selectedBlock.width}%</span>
-              </label>
-              <label>
-                Height
-                <input
-                  max="42"
-                  min="8"
-                  onChange={(event) => updateSelectedBlock("height", Number(event.target.value))}
-                  type="range"
-                  value={selectedBlock.height}
-                />
-                <span>{selectedBlock.height}%</span>
-              </label>
-              <label>
-                Rotation
-                <input
-                  max="90"
-                  min="-90"
-                  onChange={(event) => updateSelectedBlock("rotate", Number(event.target.value))}
-                  type="range"
-                  value={selectedBlock.rotate}
-                />
-                <span>{selectedBlock.rotate}deg</span>
-              </label>
-            </div>
-
-            <label>
-              Internal notes
-              <textarea
-                onChange={(event) => updateSelectedBlock("notes", event.target.value)}
-                placeholder="Survey notes, numbering quirks, reserved sections..."
-                value={selectedBlock.notes ?? ""}
-              />
-            </label>
-          </aside>
-        </div>
-
-        <div className="admin-panels">
-          {blocks.map((block) => (
-            <button
-              className={block.id === selectedBlock.id ? "admin-panel selected" : "admin-panel"}
-              key={block.id}
-              onClick={() => setSelectedBlockId(block.id)}
-              type="button"
-            >
-              <span className="admin-panel-dot" />
-              <div>
-                <strong>{block.name}</strong>
-                <span>
-                  x {block.x.toFixed(1)} / y {block.y.toFixed(1)} / {block.rotate}deg
-                </span>
+              <div className="block-structure-grid">
+                <label>
+                  Map width
+                  <input max="44" min="8" onChange={(event) => updateBlockMapSize("width", Number(event.target.value))} type="number" value={selectedBlock.width} />
+                </label>
+                <label>
+                  Map height
+                  <input max="44" min="8" onChange={(event) => updateBlockMapSize("height", Number(event.target.value))} type="number" value={selectedBlock.height} />
+                </label>
               </div>
-            </button>
-          ))}
+            </section>
+
+            <section className="editor-section">
+              <strong>Block structure</strong>
+              <div className="block-structure-grid">
+                <label>
+                  Template
+                  <select onChange={(event) => updateBlockTemplate(event.target.value)} value={templateValue}>
+                    <option value="1">1 row per strip</option>
+                    <option value="2">2 rows per strip</option>
+                    <option value="3">3 rows per strip</option>
+                    <option value="4">4 rows per strip</option>
+                    <option value="5">5 rows per strip</option>
+                    <option value="irregular">Custom strip rows</option>
+                  </select>
+                </label>
+                <label>
+                  Strip count
+                  <input max="40" min="1" onChange={(event) => updatePhysicalStrips(Number(event.target.value))} type="number" value={selectedBlock.physicalStrips} />
+                </label>
+                <label>
+                  Row count
+                  <input max="160" min="1" onChange={(event) => updateLogicalRows(Number(event.target.value))} type="number" value={selectedBlock.logicalRows} />
+                </label>
+              </div>
+              <div className="strip-row-editor">
+                {stripEntries.map(([strip, count]) => (
+                  <label key={strip}>
+                    Strip {strip}
+                    <input max="5" min="1" onChange={(event) => updateStripRowCount(strip, Number(event.target.value))} type="number" value={count} />
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="editor-section">
+              <div className="section-title-row">
+                <strong>Row plot rules</strong>
+                <button onClick={addRowRule} type="button">Add rule</button>
+              </div>
+              <div className="row-rule-list">
+                {selectedBlock.rowRules.map((rule, index) => (
+                  <div className="row-rule-item" key={`${rule.rows[0]}-${rule.rows[1]}-${index}`}>
+                    <label>
+                      From
+                      <input max={selectedBlock.logicalRows} min="1" onChange={(event) => updateRowRule(index, "start", Number(event.target.value))} type="number" value={rule.rows[0]} />
+                    </label>
+                    <label>
+                      To
+                      <input max={selectedBlock.logicalRows} min="1" onChange={(event) => updateRowRule(index, "end", Number(event.target.value))} type="number" value={rule.rows[1]} />
+                    </label>
+                    <label>
+                      Plots
+                      <input max="200" min="1" onChange={(event) => updateRowRule(index, "plotsPerRow", Number(event.target.value))} type="number" value={rule.plotsPerRow} />
+                    </label>
+                    <button onClick={() => deleteRowRule(index)} type="button">Remove</button>
+                  </div>
+                ))}
+              </div>
+              <details className="row-count-editor">
+                <summary>Individual row counts</summary>
+                <div>
+                  {rowEntries.map(([row, count]) => (
+                    <label key={row}>
+                      Row {row}
+                      <input max="200" min="1" onChange={(event) => updateRowPlotCount(row, Number(event.target.value))} type="number" value={count} />
+                    </label>
+                  ))}
+                </div>
+              </details>
+            </section>
+          </aside>
         </div>
       </section>
     </section>
