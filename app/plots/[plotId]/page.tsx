@@ -80,8 +80,21 @@ function personName(person: PersonDetailRow) {
   return person.display_name || [person.given_names, person.family_name].filter(Boolean).join(" ") || "Unnamed record";
 }
 
+function candidatePlotIds(plotId: string) {
+  const normalized = plotId.trim().toUpperCase();
+  const candidates = new Set([plotId, normalized]);
+  const compactMatch = normalized.match(/^([A-Z]+)-(\d{3})$/);
+
+  if (compactMatch) {
+    candidates.add(`${compactMatch[1]}-01-${compactMatch[2]}`);
+  }
+
+  return [...candidates];
+}
+
 function prototypeDetail(plotId: string): PlotDetail | null {
-  const record = prototypeRecords.find((item) => item.plotId === plotId);
+  const candidates = candidatePlotIds(plotId);
+  const record = prototypeRecords.find((item) => candidates.includes(item.plotId));
 
   if (!record) {
     return null;

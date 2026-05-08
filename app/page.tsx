@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { CalendarDays, Landmark, MapPin, Route, Search, ShieldCheck, UserRound } from "lucide-react";
+import Link from "next/link";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords } from "@/lib/prototype-data";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
 
@@ -179,10 +180,10 @@ export default async function Home({
                 Search
               </button>
             </div>
-            <a className="secondary-button" href="/?q=Sligo">
+            <Link className="secondary-button" href="/?q=Sligo">
               <MapPin size={18} aria-hidden="true" />
               Browse Sligo Town Cemetery
-            </a>
+            </Link>
           </form>
 
           <section className="results-panel" aria-live="polite">

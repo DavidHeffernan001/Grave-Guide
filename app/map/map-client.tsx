@@ -59,8 +59,11 @@ export function CemeteryMapClient() {
   const leafletRef = useRef<LeafletModule | null>(null);
 
   const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(prototypeRecord), [query]);
-  const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
-  const matches = [...databaseRecords, ...prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId))];
+  const databasePlotIds = useMemo(() => new Set(databaseRecords.map((record) => record.plotId)), [databaseRecords]);
+  const matches = useMemo(
+    () => [...databaseRecords, ...prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId))],
+    [databasePlotIds, databaseRecords, prototypeMatches]
+  );
   const selectedRecord =
     matches.find((record) => record.id === selectedRecordId) ??
     matches[0] ??

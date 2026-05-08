@@ -65,9 +65,12 @@ export function VisitorPrototype() {
   const leafletRef = useRef<LeafletModule | null>(null);
 
   const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(toPrototypeRecord), [query]);
-  const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
-  const fallbackMatches = prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId));
-  const matches = [...databaseRecords, ...fallbackMatches];
+  const databasePlotIds = useMemo(() => new Set(databaseRecords.map((record) => record.plotId)), [databaseRecords]);
+  const fallbackMatches = useMemo(
+    () => prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId)),
+    [databasePlotIds, prototypeMatches]
+  );
+  const matches = useMemo(() => [...databaseRecords, ...fallbackMatches], [databaseRecords, fallbackMatches]);
   const selectedRecord =
     matches.find((record) => record.id === selectedRecordId) ??
     prototypeRecords.map(toPrototypeRecord).find((record) => record.id === selectedRecordId) ??

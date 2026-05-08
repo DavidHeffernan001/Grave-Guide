@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const canonicalHost = "graveguide.ie";
 const redirectHosts = new Set(["www.graveguide.ie", "graveguide.co.uk", "www.graveguide.co.uk"]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.toLowerCase().split(":")[0];
 
   if (host && redirectHosts.has(host)) {
