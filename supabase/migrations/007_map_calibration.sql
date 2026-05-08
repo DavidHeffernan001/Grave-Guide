@@ -6,9 +6,17 @@ create table if not exists public.cemetery_map_calibrations (
   min_zoom integer not null default 16,
   max_zoom integer not null default 22,
   rotation_degrees numeric(6, 2) not null default 0,
+  overlay_width_meters numeric(8, 2) not null default 150,
+  overlay_height_meters numeric(8, 2) not null default 120,
   calibration_notes text,
   updated_at timestamptz not null default now()
 );
+
+alter table public.cemetery_map_calibrations
+add column if not exists overlay_width_meters numeric(8, 2) not null default 150;
+
+alter table public.cemetery_map_calibrations
+add column if not exists overlay_height_meters numeric(8, 2) not null default 120;
 
 alter table public.cemetery_map_calibrations enable row level security;
 
@@ -32,6 +40,8 @@ insert into public.cemetery_map_calibrations (
   default_zoom,
   min_zoom,
   max_zoom,
+  overlay_width_meters,
+  overlay_height_meters,
   calibration_notes
 ) values (
   'sligo-town-cemetery',
@@ -40,6 +50,8 @@ insert into public.cemetery_map_calibrations (
   18,
   16,
   22,
+  150,
+  120,
   'Initial Sligo Town Cemetery map calibration placeholder. Replace with surveyed entrance and boundary coordinates before public launch.'
 ) on conflict (cemetery_slug) do update set
   center_latitude = excluded.center_latitude,
@@ -47,5 +59,7 @@ insert into public.cemetery_map_calibrations (
   default_zoom = excluded.default_zoom,
   min_zoom = excluded.min_zoom,
   max_zoom = excluded.max_zoom,
+  overlay_width_meters = excluded.overlay_width_meters,
+  overlay_height_meters = excluded.overlay_height_meters,
   calibration_notes = excluded.calibration_notes,
   updated_at = now();

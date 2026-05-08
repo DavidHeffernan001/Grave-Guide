@@ -2,6 +2,16 @@
 
 import { LocateFixed, MapPin, Route, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  blockPolygonToLatLngs,
+  cemeteryPathPercentLines,
+  defaultMapCalibration,
+  normalizeCalibration,
+  percentToLatLng,
+  routePercentLine,
+  type CalibrationApiRow,
+  type MapCalibration
+} from "@/lib/map-geometry";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const flowSteps = ["Entrance scan", "Allow location", "Show map", "Search records", "Select grave", "Start guidance"];
@@ -26,6 +36,10 @@ type RecordsPayload = {
   message?: string;
 };
 
+type CalibrationPayload = {
+  calibration?: CalibrationApiRow | null;
+};
+
 type LeafletModule = typeof import("leaflet");
 
 function toPrototypeRecord(record: (typeof prototypeRecords)[number]): VisitorRecord {
@@ -33,16 +47,6 @@ function toPrototypeRecord(record: (typeof prototypeRecords)[number]): VisitorRe
     ...record,
     source: "prototype"
   };
-}
-
-function rotatePoint(x: number, y: number, centerX: number, centerY: number, degrees: number) {
-  const radians = (degrees * Math.PI) / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-  const translatedX = x - centerX;
-  const translatedY = y - centerY;
-
-  return [centerY + translatedX * sin + translatedY * cos, centerX + translatedX * cos - translatedY * sin] as [number, number];
 }
 
 export function VisitorPrototype() {
@@ -53,6 +57,7 @@ export function VisitorPrototype() {
   const [layoutStatus, setLayoutStatus] = useState("Using prototype layout");
   const [databaseRecords, setDatabaseRecords] = useState<VisitorRecord[]>([]);
   const [recordStatus, setRecordStatus] = useState("Searching Supabase records");
+  const [calibration, setCalibration] = useState<MapCalibration>(defaultMapCalibration);
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
@@ -86,6 +91,21 @@ export function VisitorPrototype() {
     }
 
     void loadLayout();
+  }, []);
+
+  useEffect(() => {
+    async function loadCalibration() {
+      try {
+        const response = await fetch("/api/map-calibration?cemetery=sligo-town-cemetery");
+        const payload = (await response.json()) as CalibrationPayload;
+
+        setCalibration(normalizeCalibration(payload.calibration));
+      } catch {
+        setCalibration(defaultMapCalibration);
+      }
+    }
+
+    void loadCalibration();
   }, []);
 
   useEffect(() => {
@@ -159,22 +179,17 @@ export function VisitorPrototype() {
 
       leafletRef.current = L;
       const map = L.map(mapContainerRef.current, {
-        attributionControl: false,
-        crs: L.CRS.Simple,
-        maxBounds: [
-          [-10, -10],
-          [110, 110]
-        ],
-        maxBoundsViscosity: 0.8,
-        maxZoom: 3,
-        minZoom: 0,
+        attributionControl: true,
+        maxZoom: calibration.maxZoom,
+        minZoom: calibration.minZoom,
         zoomControl: false
       });
 
-      map.fitBounds([
-        [0, 0],
-        [100, 100]
-      ]);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: calibration.maxZoom
+      }).addTo(map);
+      map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
       setMapReady(true);
@@ -188,7 +203,7 @@ export function VisitorPrototype() {
       mapRef.current = null;
       layerRef.current = null;
     };
-  }, []);
+  }, [calibration.centerLatitude, calibration.centerLongitude, calibration.defaultZoom, calibration.maxZoom, calibration.minZoom]);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -200,68 +215,17 @@ export function VisitorPrototype() {
     }
 
     layer.clearLayers();
+    map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
 
-    L.rectangle(
-      [
-        [0, 0],
-        [100, 100]
-      ],
-      {
-        color: "#d9d2c7",
-        fillColor: "#e5dccf",
-        fillOpacity: 1,
-        interactive: false,
-        weight: 1
-      }
-    ).addTo(layer);
-
-    for (let line = 0; line <= 100; line += 8) {
+    cemeteryPathPercentLines.forEach((line) => {
       L.polyline(
-        [
-          [line, 0],
-          [line, 100]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.7, weight: 1 }
+        line.map((point) => percentToLatLng(point.x, point.y, calibration)),
+        { color: "#d4a47d", interactive: false, opacity: 0.7, weight: 7 }
       ).addTo(layer);
-      L.polyline(
-        [
-          [0, line],
-          [100, line]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.7, weight: 1 }
-      ).addTo(layer);
-    }
-
-    L.polyline(
-      [
-        [35, -15],
-        [48, 45],
-        [62, 115]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 7 }
-    ).addTo(layer);
-    L.polyline(
-      [
-        [88, 28],
-        [56, 82],
-        [32, 118]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 7 }
-    ).addTo(layer);
+    });
 
     blocks.forEach((block) => {
-      const left = block.x - 26;
-      const top = block.y + 5;
-      const centerX = left + block.width / 2;
-      const centerY = top + block.height / 2;
-      const points = [
-        rotatePoint(left, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top + block.height, centerX, centerY, block.rotate),
-        rotatePoint(left, top + block.height, centerX, centerY, block.rotate)
-      ];
-
-      L.polygon(points, {
+      L.polygon(blockPolygonToLatLngs(block, calibration, 26), {
         color: "#587b70",
         fillColor: "#2f6f58",
         fillOpacity: 0.13,
@@ -273,7 +237,7 @@ export function VisitorPrototype() {
     });
 
     prototypeEntrances.forEach((entrance) => {
-      L.circleMarker([entrance.y, entrance.x], {
+      L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
         color: "#fffdf8",
         fillColor: "#b46b34",
         fillOpacity: 1,
@@ -288,7 +252,7 @@ export function VisitorPrototype() {
     prototypeRecords.slice(0, 18).forEach((record) => {
       const isSelected = record.plotId === selectedRecord.plotId;
 
-      L.circleMarker([record.y, record.x], {
+      L.circleMarker(percentToLatLng(record.x, record.y, calibration), {
         color: isSelected ? "#fffdf8" : "#83918a",
         fillColor: isSelected ? "#b46b34" : "#fffdf8",
         fillOpacity: 1,
@@ -301,14 +265,10 @@ export function VisitorPrototype() {
     });
 
     L.polyline(
-      [
-        [60, 42],
-        [51, 52],
-        [40, 63]
-      ],
+      routePercentLine.map((point) => percentToLatLng(point.x, point.y, calibration)),
       { color: "#2f6f58", dashArray: "5 6", interactive: false, opacity: 0.7, weight: 3 }
     ).addTo(layer);
-  }, [blocks, mapReady, matches, selectedRecord.plotId]);
+  }, [blocks, calibration, mapReady, matches, selectedRecord.plotId]);
 
   function selectRecord(recordId: string) {
     setSelectedRecordId(recordId);

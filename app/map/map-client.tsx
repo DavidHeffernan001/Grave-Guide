@@ -2,6 +2,16 @@
 
 import { LocateFixed, MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  blockPolygonToLatLngs,
+  cemeteryPathPercentLines,
+  defaultMapCalibration,
+  normalizeCalibration,
+  percentToLatLng,
+  routePercentLine,
+  type CalibrationApiRow,
+  type MapCalibration
+} from "@/lib/map-geometry";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 type LeafletModule = typeof import("leaflet");
@@ -23,24 +33,9 @@ type RecordsPayload = {
 };
 
 type CalibrationPayload = {
-  calibration?: {
-    center_latitude: number;
-    center_longitude: number;
-    default_zoom: number;
-    calibration_notes: string | null;
-  } | null;
+  calibration?: CalibrationApiRow | null;
   source?: string;
 };
-
-function rotatePoint(x: number, y: number, centerX: number, centerY: number, degrees: number) {
-  const radians = (degrees * Math.PI) / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-  const translatedX = x - centerX;
-  const translatedY = y - centerY;
-
-  return [centerY + translatedX * sin + translatedY * cos, centerX + translatedX * cos - translatedY * sin] as [number, number];
-}
 
 function prototypeRecord(record: (typeof prototypeRecords)[number]): MapRecord {
   return {
@@ -56,6 +51,7 @@ export function CemeteryMapClient() {
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [status, setStatus] = useState("Loading map");
   const [calibrationStatus, setCalibrationStatus] = useState("Checking map calibration");
+  const [calibration, setCalibration] = useState<MapCalibration>(defaultMapCalibration);
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
@@ -96,10 +92,13 @@ export function CemeteryMapClient() {
         const payload = (await response.json()) as CalibrationPayload;
 
         if (payload.calibration) {
+          const nextCalibration = normalizeCalibration(payload.calibration);
+          setCalibration(nextCalibration);
           setCalibrationStatus(
-            `Calibration ready: ${payload.calibration.center_latitude}, ${payload.calibration.center_longitude}`
+            `Real map ready: ${nextCalibration.centerLatitude.toFixed(5)}, ${nextCalibration.centerLongitude.toFixed(5)}`
           );
         } else {
+          setCalibration(defaultMapCalibration);
           setCalibrationStatus("Calibration not saved yet");
         }
       } catch {
@@ -178,21 +177,17 @@ export function CemeteryMapClient() {
 
       leafletRef.current = L;
       const map = L.map(mapContainerRef.current, {
-        attributionControl: false,
-        crs: L.CRS.Simple,
-        maxBounds: [
-          [-12, -12],
-          [112, 112]
-        ],
-        maxBoundsViscosity: 0.75,
-        maxZoom: 4,
-        minZoom: -1
+        attributionControl: true,
+        maxZoom: calibration.maxZoom,
+        minZoom: calibration.minZoom
       });
 
-      map.fitBounds([
-        [0, 0],
-        [100, 100]
-      ]);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: calibration.maxZoom
+      }).addTo(map);
+
+      map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
       setMapReady(true);
@@ -206,7 +201,7 @@ export function CemeteryMapClient() {
       mapRef.current = null;
       layerRef.current = null;
     };
-  }, []);
+  }, [calibration.defaultZoom, calibration.centerLatitude, calibration.centerLongitude, calibration.maxZoom, calibration.minZoom]);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -218,68 +213,17 @@ export function CemeteryMapClient() {
     }
 
     layer.clearLayers();
+    map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
 
-    L.rectangle(
-      [
-        [0, 0],
-        [100, 100]
-      ],
-      {
-        color: "#d9d2c7",
-        fillColor: "#e5dccf",
-        fillOpacity: 1,
-        interactive: false,
-        weight: 1
-      }
-    ).addTo(layer);
-
-    for (let line = 0; line <= 100; line += 5) {
+    cemeteryPathPercentLines.forEach((line) => {
       L.polyline(
-        [
-          [line, 0],
-          [line, 100]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
+        line.map((point) => percentToLatLng(point.x, point.y, calibration)),
+        { color: "#d4a47d", interactive: false, opacity: 0.7, weight: 9 }
       ).addTo(layer);
-      L.polyline(
-        [
-          [0, line],
-          [100, line]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
-      ).addTo(layer);
-    }
-
-    L.polyline(
-      [
-        [35, -15],
-        [48, 45],
-        [62, 115]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
-    ).addTo(layer);
-    L.polyline(
-      [
-        [88, 28],
-        [56, 82],
-        [32, 118]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
-    ).addTo(layer);
+    });
 
     blocks.forEach((block) => {
-      const left = block.x - 26;
-      const top = block.y + 5;
-      const centerX = left + block.width / 2;
-      const centerY = top + block.height / 2;
-      const points = [
-        rotatePoint(left, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top + block.height, centerX, centerY, block.rotate),
-        rotatePoint(left, top + block.height, centerX, centerY, block.rotate)
-      ];
-
-      L.polygon(points, {
+      L.polygon(blockPolygonToLatLngs(block, calibration, 26), {
         color: "#587b70",
         fillColor: "#2f6f58",
         fillOpacity: 0.13,
@@ -291,7 +235,7 @@ export function CemeteryMapClient() {
     });
 
     prototypeEntrances.forEach((entrance) => {
-      L.circleMarker([entrance.y, entrance.x], {
+      L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
         color: "#fffdf8",
         fillColor: "#b46b34",
         fillOpacity: 1,
@@ -305,7 +249,7 @@ export function CemeteryMapClient() {
     prototypeRecords.forEach((record) => {
       const isSelected = record.plotId === selectedRecord.plotId;
 
-      L.circleMarker([record.y, record.x], {
+      L.circleMarker(percentToLatLng(record.x, record.y, calibration), {
         color: isSelected ? "#fffdf8" : "#83918a",
         fillColor: isSelected ? "#b46b34" : "#fffdf8",
         fillOpacity: 1,
@@ -318,14 +262,10 @@ export function CemeteryMapClient() {
     });
 
     L.polyline(
-      [
-        [60, 42],
-        [51, 52],
-        [40, 63]
-      ],
+      routePercentLine.map((point) => percentToLatLng(point.x, point.y, calibration)),
       { color: "#2f6f58", dashArray: "5 7", interactive: false, opacity: 0.8, weight: 4 }
     ).addTo(layer);
-  }, [blocks, mapReady, matches, selectedRecord.plotId]);
+  }, [blocks, calibration, mapReady, matches, selectedRecord.plotId]);
 
   function focusSelectedRecord() {
     const map = mapRef.current;
@@ -335,7 +275,7 @@ export function CemeteryMapClient() {
       return;
     }
 
-    map.flyTo([prototype.y, prototype.x], 2, { duration: 0.8 });
+    map.flyTo(percentToLatLng(prototype.x, prototype.y, calibration), calibration.defaultZoom + 1, { duration: 0.8 });
   }
 
   return (
