@@ -2,24 +2,24 @@
 
 import { RotateCcw, Save, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  blockPolygonToLatLngs,
+  cemeteryPathPercentLines,
+  defaultMapCalibration,
+  normalizeCalibration,
+  percentToLatLng,
+  type CalibrationApiRow,
+  type MapCalibration
+} from "@/lib/map-geometry";
 import { prototypeBlocks, prototypeEntrances, prototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
 
 const storageKey = "graveguide-admin-blocks-v1";
 const adminTokenKey = "graveguide-admin-token";
 type LeafletModule = typeof import("leaflet");
+type CalibrationPayload = { calibration?: CalibrationApiRow | null };
 
 function cloneBlocks() {
   return prototypeBlocks.map((block) => ({ ...block }));
-}
-
-function rotatePoint(x: number, y: number, centerX: number, centerY: number, degrees: number) {
-  const radians = (degrees * Math.PI) / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-  const translatedX = x - centerX;
-  const translatedY = y - centerY;
-
-  return [centerY + translatedX * sin + translatedY * cos, centerX + translatedX * cos - translatedY * sin] as [number, number];
 }
 
 export function AdminWorkspace() {
@@ -27,6 +27,19 @@ export function AdminWorkspace() {
   const [selectedBlockId, setSelectedBlockId] = useState(prototypeBlocks[0]?.id ?? "A");
   const [status, setStatus] = useState("Unsaved local workspace");
   const [adminToken, setAdminToken] = useState("");
+  const [calibration, setCalibration] = useState<MapCalibration>(defaultMapCalibration);
+  const [calibrationStatus, setCalibrationStatus] = useState("Map calibration not saved this session");
+  const [recordStatus, setRecordStatus] = useState("Record form ready");
+  const [recordForm, setRecordForm] = useState({
+    givenNames: "",
+    familyName: "",
+    dateOfBirth: "",
+    dateOfDeath: "",
+    plotReference: "",
+    blockCode: "A",
+    biography: "",
+    inscription: ""
+  });
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
@@ -82,6 +95,23 @@ export function AdminWorkspace() {
     }
   }, [adminToken]);
 
+  useEffect(() => {
+    async function loadCalibration() {
+      try {
+        const response = await fetch("/api/map-calibration?cemetery=sligo-town-cemetery");
+        const payload = (await response.json()) as CalibrationPayload;
+        const nextCalibration = normalizeCalibration(payload.calibration);
+        setCalibration(nextCalibration);
+        setCalibrationStatus(payload.calibration ? "Loaded Supabase map calibration" : "Using default map calibration");
+      } catch {
+        setCalibration(defaultMapCalibration);
+        setCalibrationStatus("Map calibration unavailable");
+      }
+    }
+
+    void loadCalibration();
+  }, []);
+
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
     [blocks, selectedBlockId]
@@ -103,21 +133,16 @@ export function AdminWorkspace() {
 
       leafletRef.current = L;
       const map = L.map(mapContainerRef.current, {
-        attributionControl: false,
-        crs: L.CRS.Simple,
-        maxBounds: [
-          [-12, -12],
-          [112, 112]
-        ],
-        maxBoundsViscosity: 0.75,
-        maxZoom: 4,
-        minZoom: -1
+        attributionControl: true,
+        maxZoom: calibration.maxZoom,
+        minZoom: calibration.minZoom
       });
 
-      map.fitBounds([
-        [0, 0],
-        [100, 100]
-      ]);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: calibration.maxZoom
+      }).addTo(map);
+      map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
       setMapReady(true);
@@ -131,80 +156,31 @@ export function AdminWorkspace() {
       mapRef.current = null;
       layerRef.current = null;
     };
-  }, []);
+  }, [calibration.centerLatitude, calibration.centerLongitude, calibration.defaultZoom, calibration.maxZoom, calibration.minZoom]);
 
   useEffect(() => {
     const L = leafletRef.current;
+    const map = mapRef.current;
     const layer = layerRef.current;
 
-    if (!mapReady || !L || !layer) {
+    if (!mapReady || !L || !map || !layer) {
       return;
     }
 
     layer.clearLayers();
+    map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
 
-    L.rectangle(
-      [
-        [0, 0],
-        [100, 100]
-      ],
-      {
-        color: "#d9d2c7",
-        fillColor: "#e5dccf",
-        fillOpacity: 1,
-        interactive: false,
-        weight: 1
-      }
-    ).addTo(layer);
-
-    for (let line = 0; line <= 100; line += 5) {
+    cemeteryPathPercentLines.forEach((line) => {
       L.polyline(
-        [
-          [line, 0],
-          [line, 100]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
+        line.map((point) => percentToLatLng(point.x, point.y, calibration)),
+        { color: "#d4a47d", interactive: false, opacity: 0.7, weight: 9 }
       ).addTo(layer);
-      L.polyline(
-        [
-          [0, line],
-          [100, line]
-        ],
-        { color: "#cfc7ba", interactive: false, opacity: 0.65, weight: 1 }
-      ).addTo(layer);
-    }
-
-    L.polyline(
-      [
-        [35, -15],
-        [48, 45],
-        [62, 115]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
-    ).addTo(layer);
-    L.polyline(
-      [
-        [88, 28],
-        [56, 82],
-        [32, 118]
-      ],
-      { color: "#d4a47d", interactive: false, opacity: 0.6, weight: 9 }
-    ).addTo(layer);
+    });
 
     blocks.forEach((block) => {
-      const left = block.x - 25;
-      const top = block.y + 5;
-      const centerX = left + block.width / 2;
-      const centerY = top + block.height / 2;
-      const points = [
-        rotatePoint(left, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top, centerX, centerY, block.rotate),
-        rotatePoint(left + block.width, top + block.height, centerX, centerY, block.rotate),
-        rotatePoint(left, top + block.height, centerX, centerY, block.rotate)
-      ];
       const isSelected = block.id === selectedBlock.id;
 
-      L.polygon(points, {
+      L.polygon(blockPolygonToLatLngs(block, calibration, 25), {
         color: isSelected ? "#b46b34" : "#587b70",
         fillColor: isSelected ? "#b46b34" : "#2f6f58",
         fillOpacity: isSelected ? 0.18 : 0.13,
@@ -216,7 +192,7 @@ export function AdminWorkspace() {
     });
 
     prototypeEntrances.forEach((entrance) => {
-      L.circleMarker([entrance.y, entrance.x], {
+      L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
         color: "#fffdf8",
         fillColor: "#b46b34",
         fillOpacity: 1,
@@ -226,13 +202,29 @@ export function AdminWorkspace() {
         .bindTooltip(entrance.name)
         .addTo(layer);
     });
-  }, [blocks, mapReady, selectedBlock.id]);
+  }, [blocks, calibration, mapReady, selectedBlock.id]);
 
   function updateSelectedBlock(field: keyof Pick<PrototypeBlock, "x" | "y" | "width" | "height" | "rotate">, value: number) {
     setBlocks((currentBlocks) =>
       currentBlocks.map((block) => (block.id === selectedBlock.id ? { ...block, [field]: value } : block))
     );
     setStatus("Layout changed");
+  }
+
+  function updateCalibration(field: keyof MapCalibration, value: number) {
+    setCalibration((current) => ({
+      ...current,
+      [field]: value
+    }));
+    setCalibrationStatus("Calibration changed");
+  }
+
+  function updateRecordForm(field: keyof typeof recordForm, value: string) {
+    setRecordForm((current) => ({
+      ...current,
+      [field]: value
+    }));
+    setRecordStatus("Record form changed");
   }
 
   async function saveLayout() {
@@ -261,6 +253,80 @@ export function AdminWorkspace() {
       setStatus("Saved to Supabase and this browser");
     } catch {
       setStatus("Saved locally; Supabase save unavailable");
+    }
+  }
+
+  async function saveCalibration() {
+    setCalibrationStatus("Saving map calibration");
+
+    try {
+      const response = await fetch("/api/map-calibration", {
+        body: JSON.stringify({
+          cemeterySlug: "sligo-town-cemetery",
+          centerLatitude: calibration.centerLatitude,
+          centerLongitude: calibration.centerLongitude,
+          defaultZoom: calibration.defaultZoom,
+          minZoom: calibration.minZoom,
+          maxZoom: calibration.maxZoom,
+          rotationDegrees: calibration.rotationDegrees,
+          overlayWidthMeters: calibration.overlayWidthMeters,
+          overlayHeightMeters: calibration.overlayHeightMeters,
+          calibrationNotes: "Saved from GraveGuide admin workspace."
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-graveguide-admin-token": adminToken
+        },
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        setCalibrationStatus(payload.error ?? "Calibration save failed");
+        return;
+      }
+
+      setCalibrationStatus("Saved map calibration to Supabase");
+    } catch {
+      setCalibrationStatus("Calibration save unavailable");
+    }
+  }
+
+  async function saveRecord() {
+    setRecordStatus("Saving record");
+
+    try {
+      const response = await fetch("/api/admin-records", {
+        body: JSON.stringify({
+          cemeterySlug: "sligo-town-cemetery",
+          ...recordForm
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-graveguide-admin-token": adminToken
+        },
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        setRecordStatus(payload.error ?? "Record save failed");
+        return;
+      }
+
+      setRecordStatus("Saved record to Supabase");
+      setRecordForm({
+        givenNames: "",
+        familyName: "",
+        dateOfBirth: "",
+        dateOfDeath: "",
+        plotReference: "",
+        blockCode: "A",
+        biography: "",
+        inscription: ""
+      });
+    } catch {
+      setRecordStatus("Record save unavailable");
     }
   }
 
@@ -315,6 +381,49 @@ export function AdminWorkspace() {
             value={adminToken}
           />
         </label>
+        <div className="calibration-editor">
+          <strong>Real map calibration</strong>
+          <span>{calibrationStatus}</span>
+          <label>
+            Centre latitude
+            <input
+              onChange={(event) => updateCalibration("centerLatitude", Number(event.target.value))}
+              step="0.00001"
+              type="number"
+              value={calibration.centerLatitude}
+            />
+          </label>
+          <label>
+            Centre longitude
+            <input
+              onChange={(event) => updateCalibration("centerLongitude", Number(event.target.value))}
+              step="0.00001"
+              type="number"
+              value={calibration.centerLongitude}
+            />
+          </label>
+          <label>
+            Overlay width metres
+            <input
+              onChange={(event) => updateCalibration("overlayWidthMeters", Number(event.target.value))}
+              step="1"
+              type="number"
+              value={calibration.overlayWidthMeters}
+            />
+          </label>
+          <label>
+            Overlay height metres
+            <input
+              onChange={(event) => updateCalibration("overlayHeightMeters", Number(event.target.value))}
+              step="1"
+              type="number"
+              value={calibration.overlayHeightMeters}
+            />
+          </label>
+          <button onClick={() => void saveCalibration()} type="button">
+            Save map calibration
+          </button>
+        </div>
         <div className="admin-stat">
           <strong>{blocks.length}</strong>
           <span>Blocks</span>
@@ -326,6 +435,59 @@ export function AdminWorkspace() {
         <div className="admin-stat">
           <strong>{prototypeEntrances.length}</strong>
           <span>QR entrances</span>
+        </div>
+        <div className="record-editor">
+          <strong>Add grave record</strong>
+          <span>{recordStatus}</span>
+          <div className="record-editor-grid">
+            <label>
+              First names
+              <input
+                onChange={(event) => updateRecordForm("givenNames", event.target.value)}
+                placeholder="Andrew"
+                value={recordForm.givenNames}
+              />
+            </label>
+            <label>
+              Family name
+              <input
+                onChange={(event) => updateRecordForm("familyName", event.target.value)}
+                placeholder="Hosie"
+                value={recordForm.familyName}
+              />
+            </label>
+            <label>
+              Born
+              <input onChange={(event) => updateRecordForm("dateOfBirth", event.target.value)} type="date" value={recordForm.dateOfBirth} />
+            </label>
+            <label>
+              Died
+              <input onChange={(event) => updateRecordForm("dateOfDeath", event.target.value)} type="date" value={recordForm.dateOfDeath} />
+            </label>
+            <label>
+              Plot
+              <input
+                onChange={(event) => updateRecordForm("plotReference", event.target.value)}
+                placeholder="A-01-001"
+                value={recordForm.plotReference}
+              />
+            </label>
+            <label>
+              Block
+              <input onChange={(event) => updateRecordForm("blockCode", event.target.value)} placeholder="A" value={recordForm.blockCode} />
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea
+              onChange={(event) => updateRecordForm("biography", event.target.value)}
+              placeholder="Short public note"
+              value={recordForm.biography}
+            />
+          </label>
+          <button onClick={() => void saveRecord()} type="button">
+            Save grave record
+          </button>
         </div>
       </aside>
 
