@@ -11,6 +11,17 @@ type BlockLayoutPayload = {
     width: number;
     height: number;
     rotate: number;
+    blockType?: string;
+    customTypeName?: string;
+    stripCount?: number;
+    rowCount?: number;
+    plotsPerRow?: number;
+    firstPlotNumber?: number;
+    rowPrefix?: string;
+    stripPrefix?: string;
+    numberingDirection?: string;
+    rowOrientation?: string;
+    notes?: string;
   }>;
 };
 
@@ -28,7 +39,11 @@ function isValidBlockPayload(payload: BlockLayoutPayload) {
         Number.isFinite(block.y) &&
         Number.isFinite(block.width) &&
         Number.isFinite(block.height) &&
-        Number.isFinite(block.rotate)
+        Number.isFinite(block.rotate) &&
+        (block.stripCount === undefined || Number.isFinite(block.stripCount)) &&
+        (block.rowCount === undefined || Number.isFinite(block.rowCount)) &&
+        (block.plotsPerRow === undefined || Number.isFinite(block.plotsPerRow)) &&
+        (block.firstPlotNumber === undefined || Number.isFinite(block.firstPlotNumber))
     )
   );
 }

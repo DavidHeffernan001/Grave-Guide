@@ -95,6 +95,45 @@ export function blockPolygonToLatLngs(
   return corners.map((point) => percentToLatLng(point.x, point.y, calibration));
 }
 
+export function blockGuideLineLatLngs(
+  block: { x: number; y: number; width: number; height: number; rotate: number; rowCount?: number; stripCount?: number; rowOrientation?: "horizontal" | "vertical" },
+  calibration: MapCalibration,
+  offsetX: number
+) {
+  const left = block.x - offsetX;
+  const top = block.y + 5;
+  const centerX = left + block.width / 2;
+  const centerY = top + block.height / 2;
+  const rowCount = Math.min(Math.max(block.rowCount ?? 0, 0), 40);
+  const stripCount = Math.min(Math.max(block.stripCount ?? 0, 0), 12);
+  const lines: Array<[[number, number], [number, number]]> = [];
+
+  function point(x: number, y: number) {
+    const rotated = rotatePercentPoint(x, y, centerX, centerY, block.rotate);
+    return percentToLatLng(rotated.x, rotated.y, calibration);
+  }
+
+  for (let index = 1; index < stripCount; index += 1) {
+    const ratio = index / stripCount;
+    const x = left + block.width * ratio;
+    lines.push([point(x, top), point(x, top + block.height)]);
+  }
+
+  for (let index = 1; index < rowCount; index += 1) {
+    const ratio = index / rowCount;
+
+    if (block.rowOrientation === "vertical") {
+      const x = left + block.width * ratio;
+      lines.push([point(x, top), point(x, top + block.height)]);
+    } else {
+      const y = top + block.height * ratio;
+      lines.push([point(left, y), point(left + block.width, y)]);
+    }
+  }
+
+  return lines;
+}
+
 export const cemeteryPathPercentLines = [
   [
     { x: -15, y: 65 },

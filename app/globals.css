@@ -44,13 +44,16 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
 button,
 a,
 input,
+select,
 textarea {
   transition:
     background-color 160ms ease,
@@ -63,6 +66,7 @@ textarea {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+select:focus-visible,
 textarea:focus-visible {
   outline: 3px solid rgba(47, 117, 93, 0.24);
   outline-offset: 2px;
@@ -195,7 +199,10 @@ h1 {
 .admin-token-field input:focus,
 .calibration-editor input:focus,
 .record-editor input:focus,
-.record-editor textarea:focus {
+.record-editor textarea:focus,
+.block-editor input:focus,
+.block-editor select:focus,
+.block-editor textarea:focus {
   border-color: rgba(47, 117, 93, 0.58);
   box-shadow: 0 0 0 4px rgba(47, 117, 93, 0.12);
   outline: 0;
@@ -692,9 +699,10 @@ h1 {
 .flow-panel,
 .admin-sidebar,
 .admin-board {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.78);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(215, 206, 192, 0.78);
+  border-radius: 14px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -752,9 +760,9 @@ h1 {
 }
 
 .layout-status {
-  background: linear-gradient(180deg, #f0e8da, var(--panel-strong));
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  background: rgba(47, 117, 93, 0.09);
+  border: 1px solid rgba(47, 117, 93, 0.14);
+  border-radius: 10px;
   color: var(--accent-dark);
   font-size: 13px;
   font-weight: 700;
@@ -1073,15 +1081,17 @@ h1 {
 }
 
 .admin-token-field input {
+  background: #fffefa;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   min-height: 40px;
   padding: 0 10px;
 }
 
 .calibration-editor {
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: rgba(249, 245, 236, 0.7);
+  border: 1px solid rgba(215, 206, 192, 0.82);
+  border-radius: 12px;
   display: grid;
   gap: 9px;
   padding: 12px;
@@ -1106,14 +1116,15 @@ h1 {
 }
 
 .calibration-editor input {
+  background: #fffefa;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 9px;
   min-height: 36px;
   padding: 0 9px;
 }
 
 .calibration-editor button {
-  background: var(--accent);
+  background: linear-gradient(145deg, var(--accent), var(--accent-dark));
   border: 0;
   border-radius: 6px;
   color: white;
@@ -1123,8 +1134,9 @@ h1 {
 }
 
 .record-editor {
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: rgba(249, 245, 236, 0.7);
+  border: 1px solid rgba(215, 206, 192, 0.82);
+  border-radius: 12px;
   display: grid;
   gap: 10px;
   padding: 12px;
@@ -1155,8 +1167,9 @@ h1 {
 
 .record-editor input,
 .record-editor textarea {
+  background: #fffefa;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 9px;
   min-height: 36px;
   padding: 0 9px;
   width: 100%;
@@ -1170,7 +1183,7 @@ h1 {
 }
 
 .record-editor button {
-  background: var(--accent);
+  background: linear-gradient(145deg, var(--accent), var(--accent-dark));
   border: 0;
   border-radius: 6px;
   color: white;
@@ -1193,9 +1206,11 @@ h1 {
 }
 
 .admin-board {
+  align-content: start;
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 18px;
+  grid-auto-rows: max-content;
+  padding: 18px;
 }
 
 .admin-toolbar {
@@ -1209,7 +1224,7 @@ h1 {
   align-items: center;
   background: linear-gradient(180deg, #f2ebdf, var(--panel-strong));
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   display: inline-flex;
   gap: 8px;
   min-height: 42px;
@@ -1223,9 +1238,10 @@ h1 {
 }
 
 .admin-workspace-grid {
+  align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
 }
 
 .admin-map {
@@ -1234,9 +1250,10 @@ h1 {
     linear-gradient(rgba(47, 111, 88, 0.13) 1px, transparent 1px),
     #e5dccf;
   background-size: 32px 32px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  min-height: 520px;
+  border: 1px solid rgba(215, 206, 192, 0.8);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
+  min-height: 620px;
   overflow: hidden;
   position: relative;
 }
@@ -1292,16 +1309,43 @@ h1 {
 
 .block-editor {
   align-self: stretch;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: rgba(249, 245, 236, 0.72);
+  border: 1px solid rgba(215, 206, 192, 0.86);
+  border-radius: 14px;
   display: grid;
-  gap: 13px;
+  gap: 14px;
+  max-height: 620px;
+  overflow: auto;
   padding: 16px;
 }
 
-.block-editor h2 {
-  font-size: 24px;
+.block-editor-head {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.block-editor-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.block-editor-head h2 {
+  font-size: 26px;
+  line-height: 1;
   margin: 0;
+}
+
+.block-editor-head strong {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: 12px;
+  padding: 6px 9px;
+  white-space: nowrap;
 }
 
 .block-editor p {
@@ -1310,13 +1354,119 @@ h1 {
   margin: 0;
 }
 
+.block-config-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.block-config-summary span {
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 10px;
+  text-align: center;
+}
+
+.block-config-preview {
+  background:
+    linear-gradient(90deg, rgba(47, 117, 93, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(47, 117, 93, 0.08) 1px, transparent 1px),
+    #fffefa;
+  background-size: 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.block-strip-preview {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 34px 1fr;
+}
+
+.block-strip-preview > span {
+  align-items: center;
+  background: var(--panel-strong);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.block-strip-preview div {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(auto-fit, minmax(5px, 1fr));
+}
+
+.block-strip-preview i {
+  background: rgba(47, 117, 93, 0.18);
+  border: 1px solid rgba(47, 117, 93, 0.24);
+  border-radius: 3px;
+  min-height: 10px;
+}
+
+.block-config-preview[data-orientation="vertical"] .block-strip-preview div {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-template-rows: repeat(auto-fit, minmax(5px, 1fr));
+}
+
+.editor-section {
+  border-top: 1px solid rgba(215, 206, 192, 0.78);
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.editor-section > strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
 .block-editor label {
   display: grid;
   gap: 6px;
+  font-size: 13px;
   font-weight: 700;
 }
 
-.block-editor input {
+.block-editor input,
+.block-editor select,
+.block-editor textarea {
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-height: 38px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.block-editor textarea {
+  min-height: 78px;
+  padding-bottom: 9px;
+  padding-top: 9px;
+  resize: vertical;
+}
+
+.block-editor input[type="range"] {
+  background: transparent;
+  border: 0;
+  min-height: 24px;
+  padding: 0;
+}
+
+.block-editor input[type="range"] {
   accent-color: var(--accent);
   width: 100%;
 }
@@ -1336,9 +1486,9 @@ h1 {
 .admin-panel {
   align-items: start;
   appearance: none;
-  background: transparent;
+  background: rgba(255, 253, 248, 0.58);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -1350,7 +1500,8 @@ h1 {
 
 .admin-panel.selected {
   border-color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: #fffefa;
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-soft);
 }
 
 .admin-panel-dot {

@@ -4,6 +4,7 @@ import { RotateCcw, Save, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   blockPolygonToLatLngs,
+  blockGuideLineLatLngs,
   cemeteryPathPercentLines,
   defaultMapCalibration,
   normalizeCalibration,
@@ -11,15 +12,39 @@ import {
   type CalibrationApiRow,
   type MapCalibration
 } from "@/lib/map-geometry";
-import { prototypeBlocks, prototypeEntrances, prototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
+import {
+  normalizePrototypeBlock,
+  prototypeBlocks,
+  prototypeEntrances,
+  prototypeRecords,
+  type PrototypeBlock,
+  type PrototypeBlockDirection,
+  type PrototypeBlockOrientation,
+  type PrototypeBlockType
+} from "@/lib/prototype-data";
 
 const storageKey = "graveguide-admin-blocks-v1";
 const adminTokenKey = "graveguide-admin-token";
 type LeafletModule = typeof import("leaflet");
 type CalibrationPayload = { calibration?: CalibrationApiRow | null };
+const blockTypeOptions: Array<{ value: PrototypeBlockType; label: string }> = [
+  { value: "standard", label: "Standard burial" },
+  { value: "lawn", label: "Lawn graves" },
+  { value: "cremation", label: "Cremation" },
+  { value: "family", label: "Family plots" },
+  { value: "reserved", label: "Reserved" },
+  { value: "custom", label: "Custom type" }
+];
+
+const numberingOptions: Array<{ value: PrototypeBlockDirection; label: string }> = [
+  { value: "left-to-right", label: "Left to right" },
+  { value: "right-to-left", label: "Right to left" },
+  { value: "top-to-bottom", label: "Top to bottom" },
+  { value: "bottom-to-top", label: "Bottom to top" }
+];
 
 function cloneBlocks() {
-  return prototypeBlocks.map((block) => ({ ...block }));
+  return prototypeBlocks.map((block) => normalizePrototypeBlock({ ...block }));
 }
 
 export function AdminWorkspace() {
@@ -55,8 +80,9 @@ export function AdminWorkspace() {
         const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null; source?: string };
 
         if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
-          setBlocks(payload.blocks);
-          setSelectedBlockId(payload.blocks[0].id);
+          const normalizedBlocks = payload.blocks.map((block) => normalizePrototypeBlock(block));
+          setBlocks(normalizedBlocks);
+          setSelectedBlockId(normalizedBlocks[0].id);
           setStatus(payload.source === "supabase" ? "Loaded Supabase layout" : "Loaded fallback layout");
           return true;
         }
@@ -75,10 +101,11 @@ export function AdminWorkspace() {
       if (!stored) return;
 
       try {
-        const parsed = JSON.parse(stored) as PrototypeBlock[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setBlocks(parsed);
-          setSelectedBlockId(parsed[0].id);
+          const parsed = JSON.parse(stored) as PrototypeBlock[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const normalizedBlocks = parsed.map((block) => normalizePrototypeBlock(block));
+            setBlocks(normalizedBlocks);
+            setSelectedBlockId(normalizedBlocks[0].id);
           setStatus("Loaded saved browser layout");
         }
       } catch {
@@ -116,6 +143,13 @@ export function AdminWorkspace() {
     () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
     [blocks, selectedBlockId]
   );
+  const selectedBlockTypeLabel =
+    selectedBlock.blockType === "custom"
+      ? selectedBlock.customTypeName || "Custom type"
+      : blockTypeOptions.find((option) => option.value === selectedBlock.blockType)?.label ?? "Standard burial";
+  const totalConfiguredPlots = selectedBlock.rowCount * selectedBlock.plotsPerRow * Math.max(1, selectedBlock.stripCount);
+  const rowPreviewCount = Math.min(selectedBlock.rowCount, 12);
+  const stripPreviewCount = Math.min(selectedBlock.stripCount, 6);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +223,18 @@ export function AdminWorkspace() {
         .bindTooltip(block.name, { direction: "center", permanent: true })
         .on("click", () => setSelectedBlockId(block.id))
         .addTo(layer);
+
+      if (isSelected) {
+        blockGuideLineLatLngs(block, calibration, 25).forEach((line) => {
+          L.polyline(line, {
+            color: "#174c3c",
+            dashArray: block.rowOrientation === "vertical" ? "2 5" : "4 5",
+            interactive: false,
+            opacity: 0.38,
+            weight: 1
+          }).addTo(layer);
+        });
+      }
     });
 
     prototypeEntrances.forEach((entrance) => {
@@ -204,10 +250,13 @@ export function AdminWorkspace() {
     });
   }, [blocks, calibration, mapReady, selectedBlock.id]);
 
-  function updateSelectedBlock(field: keyof Pick<PrototypeBlock, "x" | "y" | "width" | "height" | "rotate">, value: number) {
+  function updateSelectedBlock<K extends keyof PrototypeBlock>(field: K, value: PrototypeBlock[K]) {
     setBlocks((currentBlocks) =>
       currentBlocks.map((block) => (block.id === selectedBlock.id ? { ...block, [field]: value } : block))
     );
+    if (field === "id" && typeof value === "string") {
+      setSelectedBlockId(value);
+    }
     setStatus("Layout changed");
   }
 
@@ -340,15 +389,25 @@ export function AdminWorkspace() {
 
   function addBlock() {
     const nextLetter = String.fromCharCode(65 + blocks.length);
-    const newBlock: PrototypeBlock = {
+    const newBlock: PrototypeBlock = normalizePrototypeBlock({
       id: nextLetter,
       name: `Block ${nextLetter}`,
       x: 58,
       y: 42,
       width: 20,
       height: 18,
-      rotate: 39
-    };
+      rotate: 39,
+      blockType: "standard",
+      rowCount: 10,
+      stripCount: 2,
+      plotsPerRow: 24,
+      firstPlotNumber: 1,
+      rowPrefix: "R",
+      stripPrefix: "S",
+      numberingDirection: "left-to-right",
+      rowOrientation: "horizontal",
+      notes: ""
+    });
 
     setBlocks((currentBlocks) => [...currentBlocks, newBlock]);
     setSelectedBlockId(newBlock.id);
@@ -427,6 +486,10 @@ export function AdminWorkspace() {
         <div className="admin-stat">
           <strong>{blocks.length}</strong>
           <span>Blocks</span>
+        </div>
+        <div className="admin-stat">
+          <strong>{blocks.reduce((total, block) => total + block.rowCount * block.plotsPerRow * Math.max(1, block.stripCount), 0)}</strong>
+          <span>Configured plots</span>
         </div>
         <div className="admin-stat">
           <strong>{prototypeRecords.length}</strong>
@@ -518,62 +581,211 @@ export function AdminWorkspace() {
           </div>
 
           <aside className="block-editor">
-            <h2>{selectedBlock.name}</h2>
-            <p>Adjust the selected block overlay.</p>
+            <div className="block-editor-head">
+              <div>
+                <span>Selected block</span>
+                <h2>{selectedBlock.name}</h2>
+              </div>
+              <strong>{selectedBlockTypeLabel}</strong>
+            </div>
+
+            <div className="block-config-summary">
+              <span>{selectedBlock.stripCount} strips</span>
+              <span>{selectedBlock.rowCount} rows</span>
+              <span>{totalConfiguredPlots} plots</span>
+            </div>
+
+            <div className="block-config-preview" data-orientation={selectedBlock.rowOrientation}>
+              {Array.from({ length: stripPreviewCount }, (_, stripIndex) => (
+                <div className="block-strip-preview" key={`strip-${stripIndex}`}>
+                  <span>{selectedBlock.stripPrefix}{stripIndex + 1}</span>
+                  <div>
+                    {Array.from({ length: rowPreviewCount }, (_, rowIndex) => (
+                      <i key={`row-${stripIndex}-${rowIndex}`} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="editor-section">
+              <strong>Identity</strong>
+              <label>
+                Block code
+                <input
+                  onChange={(event) => updateSelectedBlock("id", event.target.value.toUpperCase())}
+                  value={selectedBlock.id}
+                />
+              </label>
+              <label>
+                Display name
+                <input onChange={(event) => updateSelectedBlock("name", event.target.value)} value={selectedBlock.name} />
+              </label>
+              <label>
+                Block type
+                <select
+                  onChange={(event) => updateSelectedBlock("blockType", event.target.value as PrototypeBlockType)}
+                  value={selectedBlock.blockType}
+                >
+                  {blockTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedBlock.blockType === "custom" ? (
+                <label>
+                  Custom type name
+                  <input
+                    onChange={(event) => updateSelectedBlock("customTypeName", event.target.value)}
+                    placeholder="e.g. Children's memorial"
+                    value={selectedBlock.customTypeName ?? ""}
+                  />
+                </label>
+              ) : null}
+            </div>
+
+            <div className="editor-section">
+              <strong>Block layout</strong>
+              <label>
+                Strip count
+                <input
+                  max="12"
+                  min="1"
+                  onChange={(event) => updateSelectedBlock("stripCount", Number(event.target.value))}
+                  type="number"
+                  value={selectedBlock.stripCount}
+                />
+              </label>
+              <label>
+                Row count
+                <input
+                  max="80"
+                  min="1"
+                  onChange={(event) => updateSelectedBlock("rowCount", Number(event.target.value))}
+                  type="number"
+                  value={selectedBlock.rowCount}
+                />
+              </label>
+              <label>
+                Plots per row
+                <input
+                  max="120"
+                  min="1"
+                  onChange={(event) => updateSelectedBlock("plotsPerRow", Number(event.target.value))}
+                  type="number"
+                  value={selectedBlock.plotsPerRow}
+                />
+              </label>
+              <label>
+                First plot number
+                <input
+                  min="1"
+                  onChange={(event) => updateSelectedBlock("firstPlotNumber", Number(event.target.value))}
+                  type="number"
+                  value={selectedBlock.firstPlotNumber}
+                />
+              </label>
+              <label>
+                Row orientation
+                <select
+                  onChange={(event) => updateSelectedBlock("rowOrientation", event.target.value as PrototypeBlockOrientation)}
+                  value={selectedBlock.rowOrientation}
+                >
+                  <option value="horizontal">Horizontal rows</option>
+                  <option value="vertical">Vertical rows</option>
+                </select>
+              </label>
+              <label>
+                Numbering direction
+                <select
+                  onChange={(event) => updateSelectedBlock("numberingDirection", event.target.value as PrototypeBlockDirection)}
+                  value={selectedBlock.numberingDirection}
+                >
+                  {numberingOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Row prefix
+                <input onChange={(event) => updateSelectedBlock("rowPrefix", event.target.value)} value={selectedBlock.rowPrefix} />
+              </label>
+              <label>
+                Strip prefix
+                <input onChange={(event) => updateSelectedBlock("stripPrefix", event.target.value)} value={selectedBlock.stripPrefix} />
+              </label>
+            </div>
+
+            <div className="editor-section">
+              <strong>Map overlay</strong>
+              <label>
+                X position
+                <input
+                  max="110"
+                  min="0"
+                  onChange={(event) => updateSelectedBlock("x", Number(event.target.value))}
+                  type="range"
+                  value={selectedBlock.x}
+                />
+                <span>{selectedBlock.x.toFixed(1)}%</span>
+              </label>
+              <label>
+                Y position
+                <input
+                  max="100"
+                  min="0"
+                  onChange={(event) => updateSelectedBlock("y", Number(event.target.value))}
+                  type="range"
+                  value={selectedBlock.y}
+                />
+                <span>{selectedBlock.y.toFixed(1)}%</span>
+              </label>
+              <label>
+                Width
+                <input
+                  max="40"
+                  min="8"
+                  onChange={(event) => updateSelectedBlock("width", Number(event.target.value))}
+                  type="range"
+                  value={selectedBlock.width}
+                />
+                <span>{selectedBlock.width}%</span>
+              </label>
+              <label>
+                Height
+                <input
+                  max="42"
+                  min="8"
+                  onChange={(event) => updateSelectedBlock("height", Number(event.target.value))}
+                  type="range"
+                  value={selectedBlock.height}
+                />
+                <span>{selectedBlock.height}%</span>
+              </label>
+              <label>
+                Rotation
+                <input
+                  max="90"
+                  min="-90"
+                  onChange={(event) => updateSelectedBlock("rotate", Number(event.target.value))}
+                  type="range"
+                  value={selectedBlock.rotate}
+                />
+                <span>{selectedBlock.rotate}deg</span>
+              </label>
+            </div>
+
             <label>
-              X position
-              <input
-                max="110"
-                min="0"
-                onChange={(event) => updateSelectedBlock("x", Number(event.target.value))}
-                type="range"
-                value={selectedBlock.x}
+              Internal notes
+              <textarea
+                onChange={(event) => updateSelectedBlock("notes", event.target.value)}
+                placeholder="Survey notes, numbering quirks, reserved sections..."
+                value={selectedBlock.notes ?? ""}
               />
-              <span>{selectedBlock.x.toFixed(1)}%</span>
-            </label>
-            <label>
-              Y position
-              <input
-                max="100"
-                min="0"
-                onChange={(event) => updateSelectedBlock("y", Number(event.target.value))}
-                type="range"
-                value={selectedBlock.y}
-              />
-              <span>{selectedBlock.y.toFixed(1)}%</span>
-            </label>
-            <label>
-              Width
-              <input
-                max="40"
-                min="8"
-                onChange={(event) => updateSelectedBlock("width", Number(event.target.value))}
-                type="range"
-                value={selectedBlock.width}
-              />
-              <span>{selectedBlock.width}%</span>
-            </label>
-            <label>
-              Height
-              <input
-                max="42"
-                min="8"
-                onChange={(event) => updateSelectedBlock("height", Number(event.target.value))}
-                type="range"
-                value={selectedBlock.height}
-              />
-              <span>{selectedBlock.height}%</span>
-            </label>
-            <label>
-              Rotation
-              <input
-                max="90"
-                min="-90"
-                onChange={(event) => updateSelectedBlock("rotate", Number(event.target.value))}
-                type="range"
-                value={selectedBlock.rotate}
-              />
-              <span>{selectedBlock.rotate}deg</span>
             </label>
           </aside>
         </div>

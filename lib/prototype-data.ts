@@ -1,3 +1,7 @@
+export type PrototypeBlockType = "standard" | "lawn" | "cremation" | "family" | "reserved" | "custom";
+export type PrototypeBlockDirection = "left-to-right" | "right-to-left" | "top-to-bottom" | "bottom-to-top";
+export type PrototypeBlockOrientation = "horizontal" | "vertical";
+
 export type PrototypeBlock = {
   id: string;
   name: string;
@@ -6,6 +10,17 @@ export type PrototypeBlock = {
   width: number;
   height: number;
   rotate: number;
+  blockType: PrototypeBlockType;
+  customTypeName?: string;
+  stripCount: number;
+  rowCount: number;
+  plotsPerRow: number;
+  firstPlotNumber: number;
+  rowPrefix: string;
+  stripPrefix: string;
+  numberingDirection: PrototypeBlockDirection;
+  rowOrientation: PrototypeBlockOrientation;
+  notes?: string;
 };
 
 export type PrototypeEntrance = {
@@ -26,10 +41,81 @@ export type PrototypeRecord = {
 };
 
 export const prototypeBlocks: PrototypeBlock[] = [
-  { id: "A", name: "Block A", x: 75.8, y: 22.2, width: 22, height: 30, rotate: 39 },
-  { id: "B", name: "Block B", x: 91.1, y: 31.7, width: 24, height: 15, rotate: 39 },
-  { id: "C", name: "Block C", x: 100.3, y: 26.4, width: 24, height: 16, rotate: 39 }
+  {
+    id: "A",
+    name: "Block A",
+    x: 75.8,
+    y: 22.2,
+    width: 22,
+    height: 30,
+    rotate: 39,
+    blockType: "standard",
+    stripCount: 3,
+    rowCount: 17,
+    plotsPerRow: 32,
+    firstPlotNumber: 1,
+    rowPrefix: "R",
+    stripPrefix: "S",
+    numberingDirection: "left-to-right",
+    rowOrientation: "horizontal",
+    notes: "Main prototype burial block."
+  },
+  {
+    id: "B",
+    name: "Block B",
+    x: 91.1,
+    y: 31.7,
+    width: 24,
+    height: 15,
+    rotate: 39,
+    blockType: "standard",
+    stripCount: 2,
+    rowCount: 20,
+    plotsPerRow: 32,
+    firstPlotNumber: 1,
+    rowPrefix: "R",
+    stripPrefix: "S",
+    numberingDirection: "left-to-right",
+    rowOrientation: "horizontal",
+    notes: "Secondary burial block along the east path."
+  },
+  {
+    id: "C",
+    name: "Block C",
+    x: 100.3,
+    y: 26.4,
+    width: 24,
+    height: 16,
+    rotate: 39,
+    blockType: "cremation",
+    stripCount: 2,
+    rowCount: 12,
+    plotsPerRow: 24,
+    firstPlotNumber: 1,
+    rowPrefix: "R",
+    stripPrefix: "S",
+    numberingDirection: "left-to-right",
+    rowOrientation: "vertical",
+    notes: "Prototype cremation and memorial section."
+  }
 ];
+
+export function normalizePrototypeBlock(block: Partial<PrototypeBlock> & Pick<PrototypeBlock, "id" | "name" | "x" | "y" | "width" | "height" | "rotate">): PrototypeBlock {
+  return {
+    ...block,
+    blockType: block.blockType ?? "standard",
+    customTypeName: block.customTypeName ?? "",
+    stripCount: block.stripCount ?? 1,
+    rowCount: block.rowCount ?? 8,
+    plotsPerRow: block.plotsPerRow ?? 24,
+    firstPlotNumber: block.firstPlotNumber ?? 1,
+    rowPrefix: block.rowPrefix ?? "R",
+    stripPrefix: block.stripPrefix ?? "S",
+    numberingDirection: block.numberingDirection ?? "left-to-right",
+    rowOrientation: block.rowOrientation ?? "horizontal",
+    notes: block.notes ?? ""
+  };
+}
 
 export const prototypeEntrances: PrototypeEntrance[] = [
   { id: "sligo-main-entrance", name: "Main Entrance", x: 76.3, y: 13.5 },
