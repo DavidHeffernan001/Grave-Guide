@@ -4,11 +4,10 @@ import { MapPin, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   blockGuideLineLatLngs,
-  blockPolygonToLatLngs,
-  cemeteryPathPercentLines,
   defaultMapCalibration,
   normalizeCalibration,
   percentToLatLng,
+  rotatePercentPoint,
   type CalibrationApiRow,
   type MapCalibration
 } from "@/lib/map-geometry";
@@ -32,6 +31,35 @@ const adminTokenKey = "graveguide-admin-token";
 type LeafletModule = typeof import("leaflet");
 type CalibrationPayload = { calibration?: CalibrationApiRow | null };
 type VisualMode = "strips" | "rows" | "headstones";
+
+function getBlockShape(block: PrototypeBlock) {
+  return block.shape === "polygon" ? "polygon" : "rectangle";
+}
+
+function getBlockMapPoints(block: PrototypeBlock) {
+  const left = block.x - 25;
+  const top = block.y + 5;
+  const centerX = left + block.width / 2;
+  const centerY = top + block.height / 2;
+  const localPoints =
+    getBlockShape(block) === "polygon" && block.calibration.polygon?.length
+      ? block.calibration.polygon.map((point) => ({
+          x: left + (point.x / 100) * block.width,
+          y: top + (point.y / 100) * block.height
+        }))
+      : [
+          { x: left, y: top },
+          { x: left + block.width, y: top },
+          { x: left + block.width, y: top + block.height },
+          { x: left, y: top + block.height }
+        ];
+
+  return localPoints.map((point) => rotatePercentPoint(point.x, point.y, centerX, centerY, block.rotate));
+}
+
+function blockToLatLngs(block: PrototypeBlock, calibration: MapCalibration) {
+  return getBlockMapPoints(block).map((point) => percentToLatLng(point.x, point.y, calibration));
+}
 
 function cloneBlocks() {
   return prototypeBlocks.map((block) => normalizeRowPlotCounts(JSON.parse(JSON.stringify(block)) as PrototypeBlock));
@@ -252,17 +280,11 @@ export function AdminWorkspace() {
     layer.clearLayers();
     map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
 
-    cemeteryPathPercentLines.forEach((line) => {
-      L.polyline(
-        line.map((point) => percentToLatLng(point.x, point.y, calibration)),
-        { color: "#d4a47d", interactive: false, opacity: 0.7, weight: 9 }
-      ).addTo(layer);
-    });
-
     blocks.forEach((block) => {
       const isSelected = block.id === selectedBlock.id;
 
-      L.polygon(blockPolygonToLatLngs(block, calibration, 25), {
+      L.polygon(blockToLatLngs(block, calibration), {
+        className: isSelected ? "admin-map-block selected" : "admin-map-block",
         color: isSelected ? "#6b2bb2" : "#587b70",
         fillColor: isSelected ? "#8d3fd1" : "#2f6f58",
         fillOpacity: isSelected ? 0.18 : 0.13,
@@ -270,26 +292,39 @@ export function AdminWorkspace() {
       })
         .bindTooltip(block.name, { direction: "center", permanent: true })
         .on("click", () => setSelectedBlockId(block.id))
+        .on("mousedown", (event) => {
+          L.DomEvent.stop(event);
+          setSelectedBlockId(block.id);
+          map.dragging.disable();
+
+          const start = latLngToPercent(event.latlng.lat, event.latlng.lng, calibration);
+          const initial = { x: block.x, y: block.y };
+
+          const handleMove = (moveEvent: import("leaflet").LeafletMouseEvent) => {
+            const current = latLngToPercent(moveEvent.latlng.lat, moveEvent.latlng.lng, calibration);
+            const nextX = Math.min(115, Math.max(-15, initial.x + current.x - start.x));
+            const nextY = Math.min(115, Math.max(-15, initial.y + current.y - start.y));
+
+            updateBlock({
+              ...block,
+              x: nextX,
+              y: nextY,
+              calibration: { ...block.calibration, x: nextX, y: nextY }
+            });
+          };
+
+          const handleUp = () => {
+            map.off("mousemove", handleMove);
+            map.dragging.enable();
+            setStatus(`Moved ${block.name}`);
+          };
+
+          map.on("mousemove", handleMove);
+          map.once("mouseup", handleUp);
+        })
         .addTo(layer);
 
       if (isSelected) {
-        L.marker(percentToLatLng(block.x, block.y, calibration), {
-          draggable: true,
-          icon: L.divIcon({ className: "map-edit-handle", html: "<span>Move block</span>" })
-        })
-          .bindTooltip("Drag this to move the selected block", { direction: "top" })
-          .on("dragend", (event) => {
-            const marker = event.target as import("leaflet").Marker;
-            const point = latLngToPercent(marker.getLatLng().lat, marker.getLatLng().lng, calibration);
-            updateBlock({
-              ...block,
-              x: point.x,
-              y: point.y,
-              calibration: { ...block.calibration, x: point.x, y: point.y }
-            });
-          })
-          .addTo(layer);
-
         blockGuideLineLatLngs(block, calibration, 25, blockVisualMode).forEach((line) => {
           L.polyline(line, {
             color: "#6b2bb2",
@@ -394,6 +429,25 @@ export function AdminWorkspace() {
       }
     };
     updateBlock(normalizeRowPlotCounts(nextBlock, getLogicalRowsFromStrips(nextBlock)));
+  }
+
+  function updateBlockShape(shape: "rectangle" | "polygon") {
+    updateBlock({
+      ...selectedBlock,
+      shape,
+      calibration: {
+        ...selectedBlock.calibration,
+        polygon:
+          shape === "polygon"
+            ? selectedBlock.calibration.polygon ?? [
+                { x: 6, y: 8 },
+                { x: 92, y: 0 },
+                { x: 100, y: 84 },
+                { x: 14, y: 100 }
+              ]
+            : selectedBlock.calibration.polygon
+      }
+    });
   }
 
   function updatePhysicalStrips(value: number) {
@@ -879,8 +933,15 @@ export function AdminWorkspace() {
               <div className="block-config-summary">
                 <span>{selectedBlock.physicalStrips} strips</span>
                 <span>{selectedBlock.logicalRows} rows</span>
-                <span>{selectedBlock.blockTemplate}</span>
+                <span>{getBlockShape(selectedBlock)}</span>
               </div>
+              <label>
+                Block shape
+                <select onChange={(event) => updateBlockShape(event.target.value as "rectangle" | "polygon")} value={getBlockShape(selectedBlock)}>
+                  <option value="rectangle">Rectangle</option>
+                  <option value="polygon">Polygon</option>
+                </select>
+              </label>
               <label>
                 Visual mode
                 <select onChange={(event) => setBlockVisualMode(event.target.value as VisualMode)} value={blockVisualMode}>

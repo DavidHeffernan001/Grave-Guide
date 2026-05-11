@@ -22,6 +22,7 @@ export type PrototypeBlock = {
   id: string;
   cemeteryId: string;
   name: string;
+  shape?: "rectangle" | "polygon";
   physicalStrips: number;
   rowsPerStrip: number;
   stripRowCounts: Record<string, number>;
@@ -202,6 +203,7 @@ export function normalizeRowPlotCounts(block: PrototypeBlock, nextRowCount = blo
       ...block.calibration,
       cutout: block.calibration.cutout ?? { x: 0, y: 0, width: 0, height: 0 }
     },
+    shape: block.shape === "polygon" ? "polygon" : "rectangle",
     x: Number(block.x) || block.calibration.x,
     y: Number(block.y) || block.calibration.y,
     width: Number(block.width) || 20,

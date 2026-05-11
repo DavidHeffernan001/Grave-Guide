@@ -1428,6 +1428,15 @@ h1 {
   white-space: nowrap;
 }
 
+.admin-map-block {
+  cursor: grab;
+}
+
+.admin-map-block:active,
+.admin-map-block.selected {
+  cursor: grabbing;
+}
+
 .admin-block {
   align-content: center;
   appearance: none;
