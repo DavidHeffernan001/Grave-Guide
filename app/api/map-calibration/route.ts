@@ -30,6 +30,19 @@ function isNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isMissingCalibrationColumn(error: { message?: string; code?: string } | null) {
+  if (!error?.message) {
+    return false;
+  }
+
+  return (
+    error.code === "PGRST204" ||
+    error.message.includes("schema cache") ||
+    error.message.includes("overlay_width_meters") ||
+    error.message.includes("overlay_height_meters")
+  );
+}
+
 export async function GET(request: NextRequest) {
   const cemeterySlug = request.nextUrl.searchParams.get("cemetery") ?? defaultCemeterySlug;
 
@@ -44,6 +57,21 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
+      if (isMissingCalibrationColumn(error)) {
+        const fallback = await supabase
+          .from("cemetery_map_calibrations")
+          .select("cemetery_slug, center_latitude, center_longitude, default_zoom, min_zoom, max_zoom, rotation_degrees, calibration_notes, updated_at")
+          .eq("cemetery_slug", cemeterySlug)
+          .maybeSingle();
+
+        return NextResponse.json({
+          calibration: fallback.data ?? null,
+          source: fallback.data ? "supabase" : "fallback",
+          needsMigration: true,
+          error: fallback.error?.message ?? error.message
+        });
+      }
+
       return NextResponse.json({ calibration: null, source: "fallback", error: error.message }, { status: 200 });
     }
 
@@ -81,7 +109,7 @@ export async function POST(request: NextRequest) {
 
   const cemeterySlug = payload.cemeterySlug ?? defaultCemeterySlug;
   const supabase = createSupabaseServiceClient();
-  const { error } = await supabase.from("cemetery_map_calibrations").upsert({
+  const fullCalibrationRow = {
     cemetery_slug: cemeterySlug,
     center_latitude: payload.centerLatitude,
     center_longitude: payload.centerLongitude,
@@ -93,9 +121,20 @@ export async function POST(request: NextRequest) {
     overlay_height_meters: payload.overlayHeightMeters,
     calibration_notes: payload.calibrationNotes ?? null,
     updated_at: new Date().toISOString()
-  });
+  };
+
+  const { error } = await supabase.from("cemetery_map_calibrations").upsert(fullCalibrationRow);
 
   if (error) {
+    if (isMissingCalibrationColumn(error)) {
+      const { overlay_width_meters, overlay_height_meters, ...basicCalibrationRow } = fullCalibrationRow;
+      const fallback = await supabase.from("cemetery_map_calibrations").upsert(basicCalibrationRow);
+
+      if (!fallback.error) {
+        return NextResponse.json({ ok: true, needsMigration: true });
+      }
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
