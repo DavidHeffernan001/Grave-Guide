@@ -115,6 +115,54 @@ export function layoutBlockToLatLngs(
   return blockPolygonToLatLngs(block, calibration, offsetX);
 }
 
+function blockPercentRect(block: { x: number; y: number; width: number; height: number; rotate: number }, offsetX: number) {
+  const left = block.x - offsetX;
+  const top = block.y + 5;
+  return {
+    left,
+    top,
+    centerX: left + block.width / 2,
+    centerY: top + block.height / 2
+  };
+}
+
+export function blockGuideLineLatLngs(
+  block: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotate: number;
+    physicalStrips?: number;
+    logicalRows?: number;
+  },
+  calibration: MapCalibration,
+  offsetX: number,
+  mode: "strips" | "rows" | "headstones" = "strips"
+) {
+  const rect = blockPercentRect(block, offsetX);
+  const count =
+    mode === "strips"
+      ? Math.max(1, Number(block.physicalStrips) || Math.ceil((Number(block.logicalRows) || 2) / 2))
+      : Math.max(1, Number(block.logicalRows) || 2);
+
+  return Array.from({ length: Math.max(0, count - 1) }, (_, index) => {
+    const progress = (index + 1) / count;
+    const start =
+      mode === "headstones" || mode === "rows"
+        ? { x: rect.left, y: rect.top + block.height * progress }
+        : { x: rect.left + block.width * progress, y: rect.top };
+    const end =
+      mode === "headstones" || mode === "rows"
+        ? { x: rect.left + block.width, y: rect.top + block.height * progress }
+        : { x: rect.left + block.width * progress, y: rect.top + block.height };
+
+    return [start, end]
+      .map((point) => rotatePercentPoint(point.x, point.y, rect.centerX, rect.centerY, block.rotate))
+      .map((point) => percentToLatLng(point.x, point.y, calibration));
+  });
+}
+
 export const cemeteryPathPercentLines = [
   [
     { x: -15, y: 65 },
