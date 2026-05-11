@@ -19,7 +19,10 @@ export type PolygonPoint = {
   y: number;
 };
 
-export type CemeteryBlock = PrototypeBlock & {
+type CemeteryBlockBase = Pick<PrototypeBlock, "id" | "name" | "x" | "y" | "width" | "height" | "rotate"> &
+  Partial<Omit<PrototypeBlock, "id" | "name" | "x" | "y" | "width" | "height" | "rotate">>;
+
+export type CemeteryBlock = CemeteryBlockBase & {
   type: BlockType;
   polygonPoints: PolygonPoint[];
   strips: CemeteryStrip[];
@@ -55,7 +58,7 @@ export function createDefaultStrips(count = 1, rowsPerStrip = 2): CemeteryStrip[
   }));
 }
 
-export function rectangleToPolygonPoints(block: PrototypeBlock): PolygonPoint[] {
+export function rectangleToPolygonPoints(block: CemeteryBlockBase): PolygonPoint[] {
   return [
     { x: block.x - 25, y: block.y + 5 },
     { x: block.x - 25 + block.width, y: block.y + 5 },
@@ -64,7 +67,7 @@ export function rectangleToPolygonPoints(block: PrototypeBlock): PolygonPoint[] 
   ];
 }
 
-export function normalizeBlock(block: Partial<CemeteryBlock> & PrototypeBlock): CemeteryBlock {
+export function normalizeBlock(block: Partial<CemeteryBlock> & CemeteryBlockBase): CemeteryBlock {
   const type = block.type ?? "rectangle";
 
   return {
@@ -92,7 +95,7 @@ export function normalizeBlock(block: Partial<CemeteryBlock> & PrototypeBlock): 
   };
 }
 
-export function normalizeBlocks(blocks?: Array<Partial<CemeteryBlock> & PrototypeBlock> | null): CemeteryBlock[] {
+export function normalizeBlocks(blocks?: Array<Partial<CemeteryBlock> & CemeteryBlockBase> | null): CemeteryBlock[] {
   const source = Array.isArray(blocks) && blocks.length > 0 ? blocks : prototypeBlocks;
 
   return source.map(normalizeBlock);
