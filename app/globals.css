@@ -948,6 +948,12 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.entrance-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .admin-button-row button,
 .plain-admin-button {
   align-items: center;
@@ -1238,25 +1244,64 @@ h1 {
 
 .map-edit-handle,
 .map-resize-handle,
-.map-polygon-handle {
+.map-polygon-handle,
+.map-entrance-handle {
+  align-items: center;
   background: var(--warm);
   border: 2px solid white;
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(24, 33, 29, 0.2);
-  height: 16px !important;
-  margin-left: -8px !important;
-  margin-top: -8px !important;
-  width: 16px !important;
+  display: flex;
+  height: 22px !important;
+  justify-content: center;
+  margin-left: -11px !important;
+  margin-top: -11px !important;
+  width: 22px !important;
+}
+
+.map-edit-handle span,
+.map-resize-handle span,
+.map-entrance-handle span {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  left: 18px;
+  line-height: 1;
+  padding: 5px 7px;
+  position: absolute;
+  top: -5px;
+  white-space: nowrap;
 }
 
 .map-resize-handle {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .map-polygon-handle {
   background: #f7f4ee;
   border-color: var(--accent-dark);
+  height: 18px !important;
+  margin-left: -9px !important;
+  margin-top: -9px !important;
+  width: 18px !important;
+}
+
+.map-entrance-handle {
+  background: var(--warm);
+  border-color: var(--panel);
+  height: 24px !important;
+  margin-left: -12px !important;
+  margin-top: -12px !important;
+  width: 24px !important;
+}
+
+.map-entrance-handle.selected {
+  background: var(--accent-dark);
+  box-shadow: 0 0 0 5px rgba(47, 111, 88, 0.18), 0 2px 8px rgba(24, 33, 29, 0.2);
 }
 
 .admin-block {

@@ -32,7 +32,7 @@ const adminTokenKey = "graveguide-admin-token";
 type LeafletModule = typeof import("leaflet");
 type CalibrationPayload = { calibration?: CalibrationApiRow | null };
 type AssignmentPayload = { assignments?: PlotAssignment[] };
-type PlacementMode = "none" | "polygon" | "entrance";
+type PlacementMode = "none" | "block" | "polygon" | "entrance";
 type ResidentResult = {
   id: string;
   display_name: string | null;
@@ -272,6 +272,11 @@ export function AdminWorkspace() {
           updateBlock(currentBlock.id, { polygonPoints: [...currentBlock.polygonPoints, clampPoint(point)] });
         }
 
+        if (currentMode === "block" && currentBlock) {
+          moveBlockTo(currentBlock, point);
+          setStatus(`Moved ${currentBlock.name}`);
+        }
+
         if (currentMode === "entrance" && currentEntrance) {
           updateEntrance(currentEntrance.id, { x: point.x, y: point.y });
           setEntranceStatus(`Placed ${currentEntrance.name}`);
@@ -330,17 +335,18 @@ export function AdminWorkspace() {
         const center = percentToLatLng(block.x, block.y, calibration);
         const resize = percentToLatLng(block.x - 25 + block.width, block.y + 5 + block.height, calibration);
 
-        L.marker(center, { draggable: true, icon: L.divIcon({ className: "map-edit-handle", html: "" }) })
+        L.marker(center, { draggable: true, icon: L.divIcon({ className: "map-edit-handle", html: "<span>Move</span>" }) })
+          .bindTooltip("Drag to move block", { direction: "top" })
           .on("dragend", (event) => {
             const marker = event.target as import("leaflet").Marker;
             const point = latLngToPercent(marker.getLatLng().lat, marker.getLatLng().lng, calibration);
-            updateSelectedBlock("x", point.x);
-            updateSelectedBlock("y", point.y);
+            moveBlockTo(block, point);
           })
           .addTo(layer);
 
         if (block.type === "rectangle") {
-          L.marker(resize, { draggable: true, icon: L.divIcon({ className: "map-resize-handle", html: "" }) })
+          L.marker(resize, { draggable: true, icon: L.divIcon({ className: "map-resize-handle", html: "<span>Resize</span>" }) })
+            .bindTooltip("Drag to resize block", { direction: "bottom" })
             .on("dragend", (event) => {
               const marker = event.target as import("leaflet").Marker;
               const point = latLngToPercent(marker.getLatLng().lat, marker.getLatLng().lng, calibration);
@@ -368,15 +374,22 @@ export function AdminWorkspace() {
     });
 
     entrances.forEach((entrance) => {
-      L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
-        color: entrance.id === selectedEntrance?.id ? "#204b3d" : "#fffdf8",
-        fillColor: "#b46b34",
-        fillOpacity: 1,
-        radius: entrance.id === selectedEntrance?.id ? 8 : 6,
-        weight: 2
+      L.marker(percentToLatLng(entrance.x, entrance.y, calibration), {
+        draggable: true,
+        icon: L.divIcon({
+          className: entrance.id === selectedEntrance?.id ? "map-entrance-handle selected" : "map-entrance-handle",
+          html: "<span>Entrance</span>"
+        })
       })
         .bindTooltip(entrance.name)
         .on("click", () => setSelectedEntranceId(entrance.id))
+        .on("dragend", (event) => {
+          const marker = event.target as import("leaflet").Marker;
+          const point = latLngToPercent(marker.getLatLng().lat, marker.getLatLng().lng, calibration);
+          updateEntrance(entrance.id, { x: point.x, y: point.y });
+          setSelectedEntranceId(entrance.id);
+          setEntranceStatus(`Moved ${entrance.name}`);
+        })
         .addTo(layer);
     });
   }, [blocks, calibration, entrances, mapReady, selectedBlock, selectedEntrance]);
@@ -395,6 +408,21 @@ export function AdminWorkspace() {
 
   function updateSelectedBlock<K extends keyof CemeteryBlock>(field: K, value: CemeteryBlock[K]) {
     updateBlock(selectedBlock.id, { [field]: value } as Partial<CemeteryBlock>);
+  }
+
+  function moveBlockTo(block: CemeteryBlock, point: PolygonPoint) {
+    const nextPoint = clampPoint(point);
+    const deltaX = nextPoint.x - block.x;
+    const deltaY = nextPoint.y - block.y;
+
+    updateBlock(block.id, {
+      x: nextPoint.x,
+      y: nextPoint.y,
+      polygonPoints:
+        block.type === "polygon"
+          ? block.polygonPoints.map((polygonPoint) => clampPoint({ x: polygonPoint.x + deltaX, y: polygonPoint.y + deltaY }))
+          : block.polygonPoints
+    });
   }
 
   function updateBlock(blockId: string, updates: Partial<CemeteryBlock>) {
@@ -474,6 +502,43 @@ export function AdminWorkspace() {
   function updateCalibration(field: keyof MapCalibration, value: number) {
     setCalibration((current) => ({ ...current, [field]: value }));
     setCalibrationStatus("Calibration changed");
+  }
+
+  function setCalibrationToMapView() {
+    const map = mapRef.current;
+
+    if (!map) {
+      setCalibrationStatus("Map is still loading");
+      return;
+    }
+
+    const center = map.getCenter();
+    setCalibration((current) => ({
+      ...current,
+      centerLatitude: Number(center.lat.toFixed(7)),
+      centerLongitude: Number(center.lng.toFixed(7)),
+      defaultZoom: map.getZoom()
+    }));
+    setCalibrationStatus("Map centre copied from current view");
+  }
+
+  function flyToSavedCentre() {
+    mapRef.current?.flyTo([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom, { duration: 0.6 });
+  }
+
+  function placeEntranceAtMapCentre() {
+    const map = mapRef.current;
+
+    if (!map) {
+      setEntranceStatus("Map is still loading");
+      return;
+    }
+
+    const center = map.getCenter();
+    const point = latLngToPercent(center.lat, center.lng, calibration);
+    updateEntrance(selectedEntrance.id, { x: point.x, y: point.y });
+    setPlacementMode("entrance");
+    setEntranceStatus(`Placed ${selectedEntrance.name} at map centre`);
   }
 
   function updateRecordForm(field: keyof typeof recordForm, value: string | number) {
@@ -796,6 +861,9 @@ export function AdminWorkspace() {
               <option value="polygon">Adjustable Polygon</option>
             </select>
           </label>
+          <button className="plain-admin-button" onClick={() => setPlacementMode(placementMode === "block" ? "none" : "block")} type="button">
+            <MapPin size={15} /> {placementMode === "block" ? "Stop moving block" : "Move block on map"}
+          </button>
           {selectedBlock.type === "polygon" ? (
             <button className="plain-admin-button" onClick={() => setPlacementMode(placementMode === "polygon" ? "none" : "polygon")} type="button">
               {placementMode === "polygon" ? "Stop adding polygon points" : "Click map to add polygon points"}
@@ -862,8 +930,16 @@ export function AdminWorkspace() {
             Entrance name
             <input onChange={(event) => updateEntrance(selectedEntrance.id, { name: event.target.value })} value={selectedEntrance.name} />
           </label>
+          <div className="entrance-actions">
+            <button className="plain-admin-button" onClick={placeEntranceAtMapCentre} type="button">
+              Put at map centre
+            </button>
+            <button className="plain-admin-button" onClick={() => flyToSavedCentre()} type="button">
+              Go to cemetery centre
+            </button>
+          </div>
           <button className="plain-admin-button" onClick={() => setPlacementMode(placementMode === "entrance" ? "none" : "entrance")} type="button">
-            <MapPin size={15} /> {placementMode === "entrance" ? "Stop placing entrance" : "Click map to set entrance"}
+            <MapPin size={15} /> {placementMode === "entrance" ? "Stop placing entrance" : "Click map, or drag the entrance pin"}
           </button>
           <code className="qr-code-value">{selectedEntrance.qrCode}</code>
           <a className="qr-code-link" href={entranceQrCode(selectedEntrance, siteOrigin)}>{entranceQrCode(selectedEntrance, siteOrigin)}</a>
@@ -877,6 +953,8 @@ export function AdminWorkspace() {
         <div className="admin-toolbar">
           <button onClick={() => void saveLayout()} type="button"><Save size={16} /> Save blocks</button>
           <button onClick={() => void saveEntrances()} type="button"><Save size={16} /> Save entrances</button>
+          <button onClick={setCalibrationToMapView} type="button"><MapPin size={16} /> Use current view as centre</button>
+          <button onClick={flyToSavedCentre} type="button"><MapPin size={16} /> Go to saved centre</button>
           <button onClick={() => setPlacementMode("none")} type="button"><RotateCcw size={16} /> Stop map tool</button>
           <span className="admin-save-status">{placementMode === "none" ? status : `Map tool: ${placementMode}`}</span>
         </div>
@@ -902,12 +980,14 @@ export function AdminWorkspace() {
             </div>
 
             <div className="calibration-editor">
-              <strong>Real map calibration</strong>
+              <strong>Map setup</strong>
               <span>{calibrationStatus}</span>
+              <p className="admin-hint">Pan and zoom the map until the cemetery is centred, click "Use current view as centre", then save. Width/height controls how big the editable overlay area is around that centre.</p>
               <label>Centre latitude<input onChange={(event) => updateCalibration("centerLatitude", Number(event.target.value))} step="0.00001" type="number" value={calibration.centerLatitude} /></label>
               <label>Centre longitude<input onChange={(event) => updateCalibration("centerLongitude", Number(event.target.value))} step="0.00001" type="number" value={calibration.centerLongitude} /></label>
               <label>Overlay width metres<input onChange={(event) => updateCalibration("overlayWidthMeters", Number(event.target.value))} step="1" type="number" value={calibration.overlayWidthMeters} /></label>
               <label>Overlay height metres<input onChange={(event) => updateCalibration("overlayHeightMeters", Number(event.target.value))} step="1" type="number" value={calibration.overlayHeightMeters} /></label>
+              <button onClick={setCalibrationToMapView} type="button">Use current view as centre</button>
               <button onClick={() => void saveCalibration()} type="button">Save map calibration</button>
             </div>
           </aside>
