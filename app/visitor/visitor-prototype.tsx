@@ -3,16 +3,17 @@
 import { LocateFixed, MapPin, Route, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  blockPolygonToLatLngs,
   cemeteryPathPercentLines,
   defaultMapCalibration,
+  layoutBlockToLatLngs,
   normalizeCalibration,
   percentToLatLng,
   routePercentLine,
   type CalibrationApiRow,
   type MapCalibration
 } from "@/lib/map-geometry";
-import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
+import { normalizeBlocks, normalizeEntrances, type CemeteryBlock, type CemeteryEntrance } from "@/lib/cemetery-layout";
+import { prototypeEntrances, prototypeRecords, searchPrototypeRecords } from "@/lib/prototype-data";
 
 const flowSteps = ["Entrance scan", "Allow location", "Show map", "Search records", "Select grave", "Start guidance"];
 
@@ -49,11 +50,12 @@ function toPrototypeRecord(record: (typeof prototypeRecords)[number]): VisitorRe
   };
 }
 
-export function VisitorPrototype() {
+export function VisitorPrototype({ entranceCode }: { entranceCode?: string | null }) {
   const [query, setQuery] = useState("Andrew Hosie");
   const [selectedRecordId, setSelectedRecordId] = useState(prototypeRecords[0]?.id ?? "");
   const [activeStep, setActiveStep] = useState(4);
-  const [blocks, setBlocks] = useState<PrototypeBlock[]>(prototypeBlocks);
+  const [blocks, setBlocks] = useState<CemeteryBlock[]>(() => normalizeBlocks(null));
+  const [entrances, setEntrances] = useState<CemeteryEntrance[]>(() => normalizeEntrances(prototypeEntrances));
   const [layoutStatus, setLayoutStatus] = useState("Using prototype layout");
   const [databaseRecords, setDatabaseRecords] = useState<VisitorRecord[]>([]);
   const [recordStatus, setRecordStatus] = useState("Searching Supabase records");
@@ -63,14 +65,13 @@ export function VisitorPrototype() {
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
   const leafletRef = useRef<LeafletModule | null>(null);
+  const userMarkerRef = useRef<import("leaflet").CircleMarker | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(toPrototypeRecord), [query]);
-  const databasePlotIds = useMemo(() => new Set(databaseRecords.map((record) => record.plotId)), [databaseRecords]);
-  const fallbackMatches = useMemo(
-    () => prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId)),
-    [databasePlotIds, prototypeMatches]
-  );
-  const matches = useMemo(() => [...databaseRecords, ...fallbackMatches], [databaseRecords, fallbackMatches]);
+  const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
+  const fallbackMatches = prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId));
+  const matches = [...databaseRecords, ...fallbackMatches];
   const selectedRecord =
     matches.find((record) => record.id === selectedRecordId) ??
     prototypeRecords.map(toPrototypeRecord).find((record) => record.id === selectedRecordId) ??
@@ -80,15 +81,22 @@ export function VisitorPrototype() {
   useEffect(() => {
     async function loadLayout() {
       try {
-        const response = await fetch("/api/block-layouts?cemetery=sligo-town-cemetery");
-        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null };
+        const [layoutResponse, entranceResponse] = await Promise.all([
+          fetch("/api/block-layouts?cemetery=sligo-town-cemetery"),
+          fetch("/api/entrances?cemetery=sligo-town-cemetery")
+        ]);
+        const payload = (await layoutResponse.json()) as { blocks?: CemeteryBlock[] | null };
+        const entrancePayload = (await entranceResponse.json()) as { entrances?: CemeteryEntrance[] | null };
 
         if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
-          setBlocks(payload.blocks);
+          setBlocks(normalizeBlocks(payload.blocks));
           setLayoutStatus("Using saved Supabase layout");
         }
+
+        setEntrances(normalizeEntrances(entrancePayload.entrances ?? null));
       } catch {
-        setBlocks(prototypeBlocks);
+        setBlocks(normalizeBlocks(null));
+        setEntrances(normalizeEntrances(prototypeEntrances));
         setLayoutStatus("Using prototype layout");
       }
     }
@@ -196,12 +204,42 @@ export function VisitorPrototype() {
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
       setMapReady(true);
+
+      if ("geolocation" in navigator) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (position) => {
+            const latlng: [number, number] = [position.coords.latitude, position.coords.longitude];
+
+            if (!userMarkerRef.current) {
+              userMarkerRef.current = L.circleMarker(latlng, {
+                color: "#ffffff",
+                fillColor: "#2f6f58",
+                fillOpacity: 1,
+                radius: 8,
+                weight: 3
+              }).addTo(map);
+            } else {
+              userMarkerRef.current.setLatLng(latlng);
+            }
+
+            if (activeStep >= 1) {
+              map.panTo(latlng, { animate: true, duration: 0.5 });
+            }
+          },
+          () => undefined,
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        );
+      }
     }
 
     void loadLeafletMap();
 
     return () => {
       cancelled = true;
+      if (watchIdRef.current !== null && "geolocation" in navigator) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
@@ -218,7 +256,11 @@ export function VisitorPrototype() {
     }
 
     layer.clearLayers();
-    map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
+    const entrance = entrances.find((item) => item.qrCode === entranceCode);
+    const initialCenter: [number, number] = entrance
+      ? percentToLatLng(entrance.x, entrance.y, calibration)
+      : [calibration.centerLatitude, calibration.centerLongitude];
+    map.setView(initialCenter, entrance ? calibration.defaultZoom + 1 : calibration.defaultZoom);
 
     cemeteryPathPercentLines.forEach((line) => {
       L.polyline(
@@ -228,7 +270,7 @@ export function VisitorPrototype() {
     });
 
     blocks.forEach((block) => {
-      L.polygon(blockPolygonToLatLngs(block, calibration, 26), {
+      L.polygon(layoutBlockToLatLngs(block, calibration, 26), {
         color: "#587b70",
         fillColor: "#2f6f58",
         fillOpacity: 0.13,
@@ -239,7 +281,7 @@ export function VisitorPrototype() {
         .addTo(layer);
     });
 
-    prototypeEntrances.forEach((entrance) => {
+    entrances.forEach((entrance) => {
       L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
         color: "#fffdf8",
         fillColor: "#b46b34",
@@ -271,7 +313,7 @@ export function VisitorPrototype() {
       routePercentLine.map((point) => percentToLatLng(point.x, point.y, calibration)),
       { color: "#2f6f58", dashArray: "5 6", interactive: false, opacity: 0.7, weight: 3 }
     ).addTo(layer);
-  }, [blocks, calibration, mapReady, matches, selectedRecord.plotId]);
+  }, [blocks, calibration, entranceCode, entrances, mapReady, matches, selectedRecord.plotId]);
 
   function selectRecord(recordId: string) {
     setSelectedRecordId(recordId);

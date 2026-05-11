@@ -3,16 +3,17 @@
 import { LocateFixed, MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  blockPolygonToLatLngs,
   cemeteryPathPercentLines,
   defaultMapCalibration,
+  layoutBlockToLatLngs,
   normalizeCalibration,
   percentToLatLng,
   routePercentLine,
   type CalibrationApiRow,
   type MapCalibration
 } from "@/lib/map-geometry";
-import { prototypeBlocks, prototypeEntrances, prototypeRecords, searchPrototypeRecords, type PrototypeBlock } from "@/lib/prototype-data";
+import { normalizeBlocks, normalizeEntrances, type CemeteryBlock, type CemeteryEntrance } from "@/lib/cemetery-layout";
+import { prototypeRecords, searchPrototypeRecords } from "@/lib/prototype-data";
 
 type LeafletModule = typeof import("leaflet");
 
@@ -46,7 +47,8 @@ function prototypeRecord(record: (typeof prototypeRecords)[number]): MapRecord {
 
 export function CemeteryMapClient() {
   const [query, setQuery] = useState("Andrew");
-  const [blocks, setBlocks] = useState<PrototypeBlock[]>(prototypeBlocks);
+  const [blocks, setBlocks] = useState<CemeteryBlock[]>(() => normalizeBlocks(null));
+  const [entrances, setEntrances] = useState<CemeteryEntrance[]>(() => normalizeEntrances(null));
   const [databaseRecords, setDatabaseRecords] = useState<MapRecord[]>([]);
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [status, setStatus] = useState("Loading map");
@@ -59,11 +61,8 @@ export function CemeteryMapClient() {
   const leafletRef = useRef<LeafletModule | null>(null);
 
   const prototypeMatches = useMemo(() => searchPrototypeRecords(query).map(prototypeRecord), [query]);
-  const databasePlotIds = useMemo(() => new Set(databaseRecords.map((record) => record.plotId)), [databaseRecords]);
-  const matches = useMemo(
-    () => [...databaseRecords, ...prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId))],
-    [databasePlotIds, databaseRecords, prototypeMatches]
-  );
+  const databasePlotIds = new Set(databaseRecords.map((record) => record.plotId));
+  const matches = [...databaseRecords, ...prototypeMatches.filter((record) => !databasePlotIds.has(record.plotId))];
   const selectedRecord =
     matches.find((record) => record.id === selectedRecordId) ??
     matches[0] ??
@@ -73,13 +72,19 @@ export function CemeteryMapClient() {
   useEffect(() => {
     async function loadLayout() {
       try {
-        const response = await fetch("/api/block-layouts?cemetery=sligo-town-cemetery");
-        const payload = (await response.json()) as { blocks?: PrototypeBlock[] | null; source?: string };
+        const [layoutResponse, entranceResponse] = await Promise.all([
+          fetch("/api/block-layouts?cemetery=sligo-town-cemetery"),
+          fetch("/api/entrances?cemetery=sligo-town-cemetery")
+        ]);
+        const payload = (await layoutResponse.json()) as { blocks?: CemeteryBlock[] | null; source?: string };
+        const entrancePayload = (await entranceResponse.json()) as { entrances?: CemeteryEntrance[] | null };
 
         if (Array.isArray(payload.blocks) && payload.blocks.length > 0) {
-          setBlocks(payload.blocks);
+          setBlocks(normalizeBlocks(payload.blocks));
           setStatus(payload.source === "supabase" ? "Loaded Supabase layout" : "Loaded map fallback");
         }
+
+        setEntrances(normalizeEntrances(entrancePayload.entrances ?? null));
       } catch {
         setStatus("Using prototype layout");
       }
@@ -226,7 +231,7 @@ export function CemeteryMapClient() {
     });
 
     blocks.forEach((block) => {
-      L.polygon(blockPolygonToLatLngs(block, calibration, 26), {
+      L.polygon(layoutBlockToLatLngs(block, calibration, 26), {
         color: "#587b70",
         fillColor: "#2f6f58",
         fillOpacity: 0.13,
@@ -237,7 +242,7 @@ export function CemeteryMapClient() {
         .addTo(layer);
     });
 
-    prototypeEntrances.forEach((entrance) => {
+    entrances.forEach((entrance) => {
       L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
         color: "#fffdf8",
         fillColor: "#b46b34",
@@ -268,7 +273,7 @@ export function CemeteryMapClient() {
       routePercentLine.map((point) => percentToLatLng(point.x, point.y, calibration)),
       { color: "#2f6f58", dashArray: "5 7", interactive: false, opacity: 0.8, weight: 4 }
     ).addTo(layer);
-  }, [blocks, calibration, mapReady, matches, selectedRecord.plotId]);
+  }, [blocks, calibration, entrances, mapReady, matches, selectedRecord.plotId]);
 
   function focusSelectedRecord() {
     const map = mapRef.current;

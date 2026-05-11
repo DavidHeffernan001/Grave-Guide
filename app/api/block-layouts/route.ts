@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { normalizeBlocks } from "@/lib/cemetery-layout";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 
 type BlockLayoutPayload = {
   cemeterySlug?: string;
-  blockVisualMode?: "strips" | "rows" | "headstones";
-  blocks?: Array<Record<string, unknown>>;
+  blocks?: Array<{
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotate: number;
+  }>;
 };
 
 const defaultCemeterySlug = "sligo-town-cemetery";
@@ -21,14 +29,7 @@ function isValidBlockPayload(payload: BlockLayoutPayload) {
         Number.isFinite(block.y) &&
         Number.isFinite(block.width) &&
         Number.isFinite(block.height) &&
-        Number.isFinite(block.rotate) &&
-        typeof block.calibration === "object" &&
-        block.calibration !== null &&
-        Number.isFinite((block.calibration as { width?: unknown }).width) &&
-        Number.isFinite((block.calibration as { height?: unknown }).height) &&
-        Number.isFinite((block.calibration as { rotate?: unknown }).rotate) &&
-        Number.isFinite(block.physicalStrips) &&
-        Number.isFinite(block.logicalRows)
+        Number.isFinite(block.rotate)
     )
   );
 }
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ blocks: null, source: "fallback", error: error.message }, { status: 200 });
     }
 
-    return NextResponse.json({ blocks: data?.blocks ?? null, updatedAt: data?.updated_at ?? null, source: "supabase" });
+    return NextResponse.json({ blocks: normalizeBlocks(data?.blocks ?? null), updatedAt: data?.updated_at ?? null, source: "supabase" });
   } catch (error) {
     return NextResponse.json(
       { blocks: null, source: "fallback", error: error instanceof Error ? error.message : "Unknown error" },
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase.from("cemetery_block_layouts").upsert({
     cemetery_slug: cemeterySlug,
-    blocks: payload.blocks,
+    blocks: normalizeBlocks(payload.blocks),
     updated_at: new Date().toISOString()
   });
 

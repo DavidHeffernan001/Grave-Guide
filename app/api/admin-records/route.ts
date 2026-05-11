@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { normalizeBlocks, occupiedPlotNumbers, validatePlotRange, type PlotAssignment } from "@/lib/cemetery-layout";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 
 type AddRecordPayload = {
@@ -9,6 +10,10 @@ type AddRecordPayload = {
   dateOfDeath?: string;
   plotReference?: string;
   blockCode?: string;
+  stripNumber?: number;
+  rowNumber?: number;
+  startingPlotNumber?: number;
+  plotSpan?: number;
   biography?: string;
   inscription?: string;
 };
@@ -44,9 +49,16 @@ export async function POST(request: NextRequest) {
   const familyName = clean(payload.familyName);
   const plotReference = clean(payload.plotReference)?.toUpperCase();
   const blockCode = clean(payload.blockCode)?.toUpperCase() ?? plotReference?.split("-")[0] ?? null;
+  const stripNumber = Number(payload.stripNumber) || 1;
+  const rowNumber = Number(payload.rowNumber) || 1;
+  const startingPlotNumber = Number(payload.startingPlotNumber) || Number(plotReference?.split("-")[2]) || 1;
+  const plotSpan = Number(payload.plotSpan) || 1;
 
-  if (!givenNames || !familyName || !plotReference || !blockCode) {
-    return NextResponse.json({ error: "Name, family name, plot reference, and block are required." }, { status: 400 });
+  if (!givenNames || !familyName || !plotReference || !blockCode || !stripNumber || !rowNumber || !startingPlotNumber) {
+    return NextResponse.json(
+      { error: "Name, family name, plot reference, block, strip, row, and starting plot are required." },
+      { status: 400 }
+    );
   }
 
   const supabase = createSupabaseServiceClient();
@@ -60,6 +72,50 @@ export async function POST(request: NextRequest) {
 
   if (cemeteryError || !cemetery) {
     return NextResponse.json({ error: cemeteryError?.message ?? "Cemetery not found." }, { status: 404 });
+  }
+
+  const { data: layout } = await supabase
+    .from("cemetery_block_layouts")
+    .select("blocks")
+    .eq("cemetery_slug", cemeterySlug)
+    .maybeSingle();
+  const blocks = normalizeBlocks(layout?.blocks ?? null);
+  const selectedBlock = blocks.find((block) => block.id.toUpperCase() === blockCode);
+  const selectedStrip = selectedBlock?.strips.find((strip) => strip.stripNumber === stripNumber);
+  const selectedRow = selectedStrip?.rows.find((row) => row.rowNumber === rowNumber);
+  const maximumPlotCount = selectedRow?.maximumPlotCount ?? 32;
+
+  const { data: existingAssignments, error: assignmentsError } = await supabase
+    .from("grave_plot_assignments")
+    .select("id, block_code, strip_number, row_number, starting_plot_number, plot_span")
+    .eq("cemetery_slug", cemeterySlug)
+    .eq("block_code", blockCode)
+    .eq("strip_number", stripNumber)
+    .eq("row_number", rowNumber);
+
+  if (assignmentsError) {
+    return NextResponse.json({ error: assignmentsError.message }, { status: 500 });
+  }
+
+  const assignments: PlotAssignment[] = ((existingAssignments ?? []) as Array<{
+    id: string;
+    block_code: string;
+    strip_number: number;
+    row_number: number;
+    starting_plot_number: number;
+    plot_span: number;
+  }>).map((assignment) => ({
+    id: assignment.id,
+    blockCode: assignment.block_code,
+    stripNumber: assignment.strip_number,
+    rowNumber: assignment.row_number,
+    startingPlotNumber: assignment.starting_plot_number,
+    plotSpan: assignment.plot_span
+  }));
+  const validationError = validatePlotRange(assignments, maximumPlotCount, startingPlotNumber, plotSpan);
+
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 409 });
   }
 
   const { data: block, error: blockError } = await supabase
@@ -116,17 +172,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: personError?.message ?? "Person could not be saved." }, { status: 500 });
   }
 
-  const { error: burialError } = await supabase.from("burials").insert({
-    person_id: person.id,
-    plot_id: plot.id,
-    burial_date: clean(payload.dateOfDeath),
-    inscription: clean(payload.inscription),
-    source_notes: "Added from the GraveGuide admin workspace.",
-    status: "published"
-  });
+  const { data: burial, error: burialError } = await supabase
+    .from("burials")
+    .insert({
+      person_id: person.id,
+      plot_id: plot.id,
+      burial_date: clean(payload.dateOfDeath),
+      inscription: clean(payload.inscription),
+      source_notes: "Added from the GraveGuide admin workspace.",
+      status: "published"
+    })
+    .select("id")
+    .single();
 
   if (burialError) {
     return NextResponse.json({ error: burialError.message }, { status: 500 });
+  }
+
+  const newAssignment: PlotAssignment = {
+    blockCode,
+    stripNumber,
+    rowNumber,
+    startingPlotNumber,
+    plotSpan
+  };
+
+  const { error: assignmentError } = await supabase.from("grave_plot_assignments").insert({
+    cemetery_slug: cemeterySlug,
+    burial_id: burial?.id ?? null,
+    person_id: person.id,
+    plot_id: plot.id,
+    block_code: blockCode,
+    strip_number: stripNumber,
+    row_number: rowNumber,
+    starting_plot_number: startingPlotNumber,
+    plot_span: plotSpan,
+    occupied_plot_numbers: occupiedPlotNumbers(newAssignment)
+  });
+
+  if (assignmentError) {
+    return NextResponse.json({ error: assignmentError.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, personId: person.id, plotId: plot.id, plotReference });

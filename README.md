@@ -40,8 +40,7 @@ Useful pages after deployment:
 - `/`: public search homepage.
 - `/map`: full-page Leaflet cemetery map.
 - `/visitor`: phone-style visitor flow. It searches Supabase records first and falls back to demo records if needed.
-- `/admin`: cemetery layout editor. Use your `GRAVEGUIDE_ADMIN_TOKEN` here before saving the layout.
-- `/admin`: also includes map calibration controls and a simple grave-record entry form.
+- `/admin`: cemetery admin workspace. Use your `GRAVEGUIDE_ADMIN_TOKEN` here before saving blocks, entrances, calibration, resident records, and plot layout changes.
 - `/plots/A-01-001`: public plot detail page. It reads from Supabase when the plot exists there.
 
 ## Supabase
@@ -55,6 +54,8 @@ Run the migrations in order:
 5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
 6. `supabase/migrations/006_seed_sligo_demo_records.sql`
 7. `supabase/migrations/007_map_calibration.sql`
+8. `supabase/migrations/008_admin_layout_entrances_and_plot_assignments.sql`
+9. `supabase/migrations/009_grave_plot_assignment_unique_burial.sql`
 
 More detail is in `docs/supabase-setup.md`.
 

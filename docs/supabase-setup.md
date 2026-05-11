@@ -34,8 +34,10 @@ In Supabase SQL Editor, run these files in order:
 5. `supabase/migrations/005_block_layouts_and_demo_records.sql`
 6. `supabase/migrations/006_seed_sligo_demo_records.sql`
 7. `supabase/migrations/007_map_calibration.sql`
+8. `supabase/migrations/008_admin_layout_entrances_and_plot_assignments.sql`
+9. `supabase/migrations/009_grave_plot_assignment_unique_burial.sql`
 
-The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by the Admin and Visitor prototypes. The sixth imports the original Sligo demo names, plots, and burials into Supabase. The seventh creates the first map calibration record for real-world map setup.
+The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by Admin, Map, and Visitor pages. The sixth imports the original Sligo demo names, plots, and burials into Supabase. The seventh creates the first map calibration record. The eighth adds entrance/QR layouts and plot assignment tracking. The ninth makes resident plot assignment updates reliable.
 
 ## 3. Admin Save Token
 
@@ -51,6 +53,8 @@ The same token is also used for:
 
 - Saving real-map calibration values.
 - Adding a new grave record from the Admin form.
+- Saving entrances and QR entry points.
+- Editing resident details and resident plot placement.
 
 ## 4. Visitor Search
 
@@ -82,7 +86,25 @@ Run this migration by opening the file, copying all of the SQL inside it, and pa
 
 In `/admin`, use the Real map calibration panel to adjust the centre point and overlay size. Click `Save map calibration`, then reload `/map` or `/visitor`.
 
-## 7. Auth
+## 7. Admin Layout, Entrances, and Plot Rules
+
+Run migrations `008` and `009` before using the restored Admin tools.
+
+In `/admin` you can now:
+
+- Add, edit, and delete rectangle or polygon blocks.
+- Add strips inside each block.
+- Set a different row count for each strip.
+- Set the maximum number of plots for each row.
+- Add resident records with block, strip, row, starting plot, and plot span.
+- Stop overlapping plot ranges.
+- Stop records from going past the row limit.
+- Add entrances, place them on the map, and copy the QR visitor link.
+- Search and edit residents, including their plot placement.
+
+The QR link opens `/visitor?entrance=...`. The visitor map starts near that entrance and asks the browser for live location permission when available.
+
+## 8. Auth
 
 Enable email auth in Supabase Auth. New users automatically receive a row in `public.profiles`.
 
@@ -96,7 +118,7 @@ where id = 'YOUR_USER_ID';
 
 You can find the user id in Supabase Auth > Users.
 
-## 8. Storage
+## 9. Storage
 
 The storage migration creates a private bucket named:
 
@@ -106,7 +128,7 @@ memorial-photos
 
 Photo metadata is tracked in `public.memorial_photos`.
 
-## 9. Production Domain
+## 10. Production Domain
 
 Use `graveguide.ie` as the canonical production domain. Redirect:
 

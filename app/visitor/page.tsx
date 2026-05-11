@@ -2,7 +2,13 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { VisitorPrototype } from "./visitor-prototype";
 
-export default function VisitorPage() {
+export default async function VisitorPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ entrance?: string }>;
+}) {
+  const params = await searchParams;
+
   return (
     <main className="demo-page">
       <header className="demo-topbar">
@@ -18,7 +24,7 @@ export default function VisitorPage() {
         </Link>
       </header>
 
-      <VisitorPrototype />
+      <VisitorPrototype entranceCode={params?.entrance ?? null} />
     </main>
   );
 }
