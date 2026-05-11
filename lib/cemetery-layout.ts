@@ -102,7 +102,8 @@ export function normalizeBlocks(blocks?: Array<Partial<CemeteryBlock> & Cemetery
 }
 
 export function normalizeEntrances(entrances?: Partial<CemeteryEntrance>[] | null): CemeteryEntrance[] {
-  const source = Array.isArray(entrances) && entrances.length > 0 ? entrances : prototypeEntrances;
+  const source: Partial<CemeteryEntrance>[] =
+    Array.isArray(entrances) && entrances.length > 0 ? entrances : prototypeEntrances;
 
   return source.map((entrance, index) => ({
     id: entrance.id ?? `entrance-${index + 1}`,
