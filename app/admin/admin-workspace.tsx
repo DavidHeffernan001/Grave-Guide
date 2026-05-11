@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { MapPin, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   blockGuideLineLatLngs,
@@ -12,6 +12,7 @@ import {
   type CalibrationApiRow,
   type MapCalibration
 } from "@/lib/map-geometry";
+import { normalizeEntrances, type CemeteryEntrance } from "@/lib/cemetery-layout";
 import {
   createPrototypeBlock,
   getBlockPlotTotal,
@@ -62,7 +63,11 @@ export function AdminWorkspace() {
   const [blocks, setBlocks] = useState<PrototypeBlock[]>(cloneBlocks);
   const [selectedBlockId, setSelectedBlockId] = useState(prototypeBlocks[0]?.id ?? "A");
   const [blockVisualMode, setBlockVisualMode] = useState<VisualMode>("strips");
+  const [entrances, setEntrances] = useState<CemeteryEntrance[]>(() => normalizeEntrances(prototypeEntrances));
+  const [selectedEntranceId, setSelectedEntranceId] = useState(prototypeEntrances[0]?.id ?? "sligo-main-entrance");
+  const [placingEntrance, setPlacingEntrance] = useState(false);
   const [status, setStatus] = useState("Unsaved local workspace");
+  const [entranceStatus, setEntranceStatus] = useState("Entrance points ready");
   const [adminToken, setAdminToken] = useState("");
   const [calibration, setCalibration] = useState<MapCalibration>(defaultMapCalibration);
   const [calibrationStatus, setCalibrationStatus] = useState("Map calibration not saved this session");
@@ -82,11 +87,22 @@ export function AdminWorkspace() {
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
   const leafletRef = useRef<LeafletModule | null>(null);
+  const placingEntranceRef = useRef(false);
+  const selectedEntranceRef = useRef<CemeteryEntrance | null>(null);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? blocks[0],
     [blocks, selectedBlockId]
   );
+  const selectedEntrance = useMemo(
+    () => entrances.find((entrance) => entrance.id === selectedEntranceId) ?? entrances[0],
+    [entrances, selectedEntranceId]
+  );
+
+  useEffect(() => {
+    placingEntranceRef.current = placingEntrance;
+    selectedEntranceRef.current = selectedEntrance ?? null;
+  }, [placingEntrance, selectedEntrance]);
 
   useEffect(() => {
     setAdminToken(window.localStorage.getItem(adminTokenKey) ?? "");
@@ -131,6 +147,24 @@ export function AdminWorkspace() {
         setStatus("Saved layout could not be loaded");
       }
     });
+  }, []);
+
+  useEffect(() => {
+    async function loadEntrances() {
+      try {
+        const response = await fetch("/api/entrances?cemetery=sligo-town-cemetery");
+        const payload = (await response.json()) as { entrances?: CemeteryEntrance[] | null; source?: string };
+        const nextEntrances = normalizeEntrances(payload.entrances ?? null);
+        setEntrances(nextEntrances);
+        setSelectedEntranceId(nextEntrances[0]?.id ?? "sligo-main-entrance");
+        setEntranceStatus(payload.source === "supabase" ? "Loaded saved entrances" : "Using starter entrances");
+      } catch {
+        setEntrances(normalizeEntrances(prototypeEntrances));
+        setEntranceStatus("Using starter entrances");
+      }
+    }
+
+    void loadEntrances();
   }, []);
 
   useEffect(() => {
@@ -184,6 +218,13 @@ export function AdminWorkspace() {
         maxZoom: calibration.maxZoom
       }).addTo(map);
       map.setView([calibration.centerLatitude, calibration.centerLongitude], calibration.defaultZoom);
+      map.on("click", (event) => {
+        if (!placingEntranceRef.current || !selectedEntranceRef.current) return;
+
+        const point = latLngToPercent(event.latlng.lat, event.latlng.lng, calibration);
+        updateEntrance(selectedEntranceRef.current.id, { x: point.x, y: point.y });
+        setEntranceStatus(`Placed ${selectedEntranceRef.current.name}`);
+      });
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
       setMapReady(true);
@@ -261,18 +302,28 @@ export function AdminWorkspace() {
       }
     });
 
-    prototypeEntrances.forEach((entrance) => {
-      L.circleMarker(percentToLatLng(entrance.x, entrance.y, calibration), {
-        color: "#fffdf8",
-        fillColor: "#b46b34",
-        fillOpacity: 1,
-        radius: 6,
-        weight: 2
+    entrances.forEach((entrance) => {
+      const isSelected = entrance.id === selectedEntrance?.id;
+
+      L.marker(percentToLatLng(entrance.x, entrance.y, calibration), {
+        draggable: true,
+        icon: L.divIcon({
+          className: isSelected ? "entrance-edit-handle selected" : "entrance-edit-handle",
+          html: "<span>Entrance</span>"
+        })
       })
         .bindTooltip(entrance.name)
+        .on("click", () => setSelectedEntranceId(entrance.id))
+        .on("dragend", (event) => {
+          const marker = event.target as import("leaflet").Marker;
+          const point = latLngToPercent(marker.getLatLng().lat, marker.getLatLng().lng, calibration);
+          updateEntrance(entrance.id, { x: point.x, y: point.y });
+          setSelectedEntranceId(entrance.id);
+          setEntranceStatus(`Moved ${entrance.name}`);
+        })
         .addTo(layer);
     });
-  }, [blocks, blockVisualMode, calibration, mapReady, selectedBlock]);
+  }, [blocks, blockVisualMode, calibration, entrances, mapReady, selectedBlock, selectedEntrance]);
 
   function updateBlock(nextBlock: PrototypeBlock) {
     setBlocks((currentBlocks) => currentBlocks.map((block) => (block.id === nextBlock.id ? normalizeRowPlotCounts(nextBlock) : block)));
@@ -414,6 +465,63 @@ export function AdminWorkspace() {
   function updateCalibration(field: keyof MapCalibration, value: number) {
     setCalibration((current) => ({ ...current, [field]: value }));
     setCalibrationStatus("Calibration changed");
+  }
+
+  function updateEntrance(entranceId: string, updates: Partial<CemeteryEntrance>) {
+    setEntrances((current) => current.map((entrance) => (entrance.id === entranceId ? { ...entrance, ...updates } : entrance)));
+  }
+
+  function addEntrance() {
+    const entrance: CemeteryEntrance = {
+      id: `entrance-${Date.now()}`,
+      name: `Entrance ${entrances.length + 1}`,
+      x: 50,
+      y: 50,
+      qrCode: `graveguide-entrance-${entrances.length + 1}`,
+      linkedBlockId: null
+    };
+
+    setEntrances((current) => [...current, entrance]);
+    setSelectedEntranceId(entrance.id);
+    setPlacingEntrance(true);
+    setEntranceStatus("Click the map or drag the pin to place this entrance");
+  }
+
+  function deleteEntrance() {
+    if (!selectedEntrance || entrances.length <= 1) {
+      setEntranceStatus("Keep at least one entrance");
+      return;
+    }
+
+    const nextEntrances = entrances.filter((entrance) => entrance.id !== selectedEntrance.id);
+    setEntrances(nextEntrances);
+    setSelectedEntranceId(nextEntrances[0].id);
+    setEntranceStatus(`Deleted ${selectedEntrance.name}`);
+  }
+
+  async function saveEntrances() {
+    setEntranceStatus("Saving entrances");
+
+    try {
+      const response = await fetch("/api/entrances", {
+        body: JSON.stringify({ cemeterySlug: "sligo-town-cemetery", entrances }),
+        headers: {
+          "content-type": "application/json",
+          "x-graveguide-admin-token": adminToken
+        },
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        setEntranceStatus(payload.error ?? "Entrance save failed");
+        return;
+      }
+
+      setEntranceStatus("Saved entrances");
+    } catch {
+      setEntranceStatus("Entrance save unavailable");
+    }
   }
 
   function useCurrentMapViewAsStart() {
@@ -687,7 +795,7 @@ export function AdminWorkspace() {
             <span>Sligo Town Cemetery</span>
           </div>
           <div>
-            <strong>{prototypeEntrances.length} entrances</strong>
+            <strong>{entrances.length} entrances</strong>
             <span>Main QR points</span>
           </div>
           <div>
@@ -720,6 +828,44 @@ export function AdminWorkspace() {
                 Add block
               </button>
               <div className="editing-pill">Editing {selectedBlock.name}</div>
+            </section>
+
+            <section className="editor-section entrance-editor">
+              <div className="section-title-row">
+                <strong>Entrances</strong>
+                <button onClick={() => void saveEntrances()} type="button">Save</button>
+              </div>
+              <span>{entranceStatus}</span>
+              <label>
+                Active entrance
+                <select onChange={(event) => setSelectedEntranceId(event.target.value)} value={selectedEntrance?.id ?? ""}>
+                  {entrances.map((entrance) => (
+                    <option key={entrance.id} value={entrance.id}>
+                      {entrance.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedEntrance ? (
+                <>
+                  <label>
+                    Entrance name
+                    <input onChange={(event) => updateEntrance(selectedEntrance.id, { name: event.target.value })} value={selectedEntrance.name} />
+                  </label>
+                  <div className="entrance-code">
+                    <span>QR code</span>
+                    <code>{selectedEntrance.qrCode}</code>
+                  </div>
+                </>
+              ) : null}
+              <div className="entrance-action-row">
+                <button onClick={addEntrance} type="button">Add entrance</button>
+                <button onClick={deleteEntrance} type="button">Delete</button>
+              </div>
+              <button className={placingEntrance ? "pill-action active" : "pill-action"} onClick={() => setPlacingEntrance((current) => !current)} type="button">
+                <MapPin size={16} aria-hidden="true" />
+                {placingEntrance ? "Stop placing" : "Place on map"}
+              </button>
             </section>
 
             <section className="editor-section">
