@@ -531,6 +531,7 @@ async function saveEntranceLayout() {
   entranceSaveStatus.textContent = "Saving entrance...";
 
   try {
+    await ensureActiveCemeterySaved();
     const result = await postAdminJson("/api/save-entrances", allCemeteryEntrances);
     entranceSaveStatus.textContent = result.source === "supabase" ? "Entrance saved to live database." : "Entrance saved in browser fallback.";
     entranceCountValue.textContent = `${cemeteryEntrances.length} entrance${cemeteryEntrances.length === 1 ? "" : "s"}`;
@@ -592,6 +593,10 @@ function getAdminSaveHeaders() {
   };
 }
 
+function getCemeteryScopedStorageKey(baseKey) {
+  return `${baseKey}-${activeCemetery?.id || "sligo-town-cemetery"}`;
+}
+
 function updateAdminSaveStatus(message = null) {
   if (!adminSaveStatus) return;
   const hasToken = Boolean(adminSaveTokenInput?.value.trim() || localStorage.getItem(adminSaveTokenKey));
@@ -614,9 +619,17 @@ async function postAdminJson(url, body) {
   return result;
 }
 
+async function ensureActiveCemeterySaved() {
+  if (!activeCemetery) return null;
+  return postAdminJson("/api/save-cemeteries", {
+    ...cemeteriesConfig,
+    activeCemeteryId: activeCemetery.id,
+  });
+}
+
 function saveBlockBrowserBackup() {
   localStorage.setItem(
-    blockStorageKey,
+    getCemeteryScopedStorageKey(blockStorageKey),
     JSON.stringify({
       selectedBlockId,
       blockVisualMode,
@@ -660,6 +673,7 @@ async function saveBlockLayout() {
   blockSaveStatus.textContent = "Saving...";
 
   try {
+    await ensureActiveCemeterySaved();
     const response = await fetch("/api/save-blocks", {
       method: "POST",
       headers: getAdminSaveHeaders(),
@@ -705,7 +719,9 @@ function getPlotDataWithCalibrations(plotData) {
 
 async function savePlotData(nextData, statusElement = activeCalibrationValue) {
   plotSourceData = nextData;
-  localStorage.setItem("graveguide-sligo-plot-data", JSON.stringify(nextData));
+  localStorage.setItem(getCemeteryScopedStorageKey("graveguide-plot-data"), JSON.stringify(nextData));
+
+  await ensureActiveCemeterySaved();
 
   const response = await fetch("/api/save-plot-data", {
     method: "POST",
@@ -739,7 +755,7 @@ async function saveCalibrations() {
 }
 
 function loadSavedBlockLayout() {
-  const saved = localStorage.getItem(blockStorageKey);
+  const saved = localStorage.getItem(getCemeteryScopedStorageKey(blockStorageKey));
   if (!saved) return false;
 
   try {
@@ -848,6 +864,7 @@ function renderCemeteryMapFrame() {
 }
 
 async function saveCemeteryConfig() {
+  if (activeCemetery) cemeteriesConfig.activeCemeteryId = activeCemetery.id;
   await Promise.all([
     postAdminJson("/api/save-cemeteries", cemeteriesConfig),
     postAdminJson("/api/save-entrances", allCemeteryEntrances),
@@ -1041,13 +1058,13 @@ async function loadPlotData(cemetery) {
     return { cemetery, plots: [], burials: [] };
   }
 
-  const savedPlotData = localStorage.getItem("graveguide-sligo-plot-data");
+  const savedPlotData = localStorage.getItem(getCemeteryScopedStorageKey("graveguide-plot-data"));
   if (savedPlotData) {
     try {
       const parsed = JSON.parse(savedPlotData);
       if (Array.isArray(parsed.plots) && Array.isArray(parsed.burials) && parsed.cemetery?.id === cemetery.id) return ensurePrototypeCalibrationAnchors(parsed);
     } catch {
-      localStorage.removeItem("graveguide-sligo-plot-data");
+      localStorage.removeItem(getCemeteryScopedStorageKey("graveguide-plot-data"));
     }
   }
 
