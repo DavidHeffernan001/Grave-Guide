@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 
 type RemakePlotData = {
@@ -9,7 +9,21 @@ type RemakePlotData = {
   burials?: unknown[];
 };
 
-export async function POST(request: Request) {
+function canWrite(request: NextRequest) {
+  const configuredToken = process.env.GRAVEGUIDE_ADMIN_TOKEN;
+
+  if (!configuredToken) {
+    return false;
+  }
+
+  return request.headers.get("x-graveguide-admin-token") === configuredToken;
+}
+
+export async function POST(request: NextRequest) {
+  if (!canWrite(request)) {
+    return NextResponse.json({ ok: false, error: "Admin save key required." }, { status: 403 });
+  }
+
   const data = (await request.json()) as RemakePlotData;
 
   if (!data || !Array.isArray(data.plots) || !Array.isArray(data.burials)) {

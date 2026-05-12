@@ -10,6 +10,8 @@ const panels = {
 const searchInput = document.querySelector("#nameSearch");
 const modeButtons = [...document.querySelectorAll("[data-mode-option]")];
 const adminModeStatus = document.querySelector("#adminModeStatus");
+const adminSaveTokenInput = document.querySelector("#adminSaveToken");
+const adminSaveStatus = document.querySelector("#adminSaveStatus");
 const stateButtons = [...document.querySelectorAll(".state-button")];
 const flowSteps = [...document.querySelectorAll(".flow-step")];
 const cemeteryCountValue = document.querySelector("#cemeteryCountValue");
@@ -153,6 +155,7 @@ let activeCemetery = null;
 let workspaceMode = "visitor";
 let blockVisualMode = "strips";
 const blockStorageKey = "graveguide-sligo-block-layout";
+const adminSaveTokenKey = "graveguide-admin-save-token";
 
 const visiblePanels = {
   welcome: ["welcome"],
@@ -485,6 +488,36 @@ function markBlocksSaved() {
   blockSaveStatus.textContent = "Saved to data/blocks.json";
 }
 
+function getAdminSaveHeaders() {
+  const token = adminSaveTokenInput?.value.trim() || localStorage.getItem(adminSaveTokenKey) || "";
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { "x-graveguide-admin-token": token } : {}),
+  };
+}
+
+function updateAdminSaveStatus(message = null) {
+  if (!adminSaveStatus) return;
+  const hasToken = Boolean(adminSaveTokenInput?.value.trim() || localStorage.getItem(adminSaveTokenKey));
+  adminSaveStatus.textContent = message || (hasToken ? "Live saves enabled for this browser." : "Required for live database saves.");
+}
+
+async function postAdminJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: getAdminSaveHeaders(),
+    body: JSON.stringify(body),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || result.ok === false) {
+    throw new Error(result.error || "Admin save failed");
+  }
+
+  updateAdminSaveStatus(result.source === "supabase" ? "Saved to live database." : "Saved in browser fallback.");
+  return result;
+}
+
 function saveBlockBrowserBackup() {
   localStorage.setItem(
     blockStorageKey,
@@ -533,7 +566,7 @@ async function saveBlockLayout() {
   try {
     const response = await fetch("/api/save-blocks", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAdminSaveHeaders(),
       body: JSON.stringify(allCemeteryBlocks),
     });
     const result = await response.json();
@@ -580,7 +613,7 @@ async function savePlotData(nextData, statusElement = activeCalibrationValue) {
 
   const response = await fetch("/api/save-plot-data", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAdminSaveHeaders(),
     body: JSON.stringify(nextData),
   });
   const result = await response.json();
@@ -719,21 +752,9 @@ function renderCemeteryMapFrame() {
 
 async function saveCemeteryConfig() {
   await Promise.all([
-    fetch("/api/save-cemeteries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cemeteriesConfig),
-    }),
-    fetch("/api/save-entrances", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(allCemeteryEntrances),
-    }),
-    fetch("/api/save-blocks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(allCemeteryBlocks),
-    }),
+    postAdminJson("/api/save-cemeteries", cemeteriesConfig),
+    postAdminJson("/api/save-entrances", allCemeteryEntrances),
+    postAdminJson("/api/save-blocks", allCemeteryBlocks),
   ]);
 }
 
@@ -2371,6 +2392,20 @@ rowCountList.addEventListener("input", (event) => {
   renderBlockControls(block, getBlockCalibration());
   if (selectedRecord) updateRoutePath(selectedRecord);
 });
+
+if (adminSaveTokenInput) {
+  adminSaveTokenInput.value = localStorage.getItem(adminSaveTokenKey) || "";
+  updateAdminSaveStatus();
+  adminSaveTokenInput.addEventListener("input", () => {
+    const token = adminSaveTokenInput.value.trim();
+    if (token) {
+      localStorage.setItem(adminSaveTokenKey, token);
+    } else {
+      localStorage.removeItem(adminSaveTokenKey);
+    }
+    updateAdminSaveStatus();
+  });
+}
 
 setMapZoom(mapZoom);
 renderMapPan();

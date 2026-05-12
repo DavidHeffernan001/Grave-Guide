@@ -6,6 +6,7 @@ create table if not exists public.cemetery_entrance_layouts (
 
 alter table public.cemetery_entrance_layouts enable row level security;
 
+drop policy if exists "Entrance layouts are public" on public.cemetery_entrance_layouts;
 drop policy if exists "Published entrance layouts are public" on public.cemetery_entrance_layouts;
 create policy "Published entrance layouts are public"
 on public.cemetery_entrance_layouts for select

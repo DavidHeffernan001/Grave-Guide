@@ -36,8 +36,11 @@ In Supabase SQL Editor, run these files in order:
 7. `supabase/migrations/007_map_calibration.sql`
 8. `supabase/migrations/008_admin_layout_entrances_and_plot_assignments.sql`
 9. `supabase/migrations/009_grave_plot_assignment_unique_burial.sql`
+10. `supabase/migrations/010_repair_map_calibration_columns.sql`
+11. `supabase/migrations/011_remake_multicemetery_persistence.sql`
 
 The first migration creates the core tables, indexes, triggers, and RLS policies. The second adds the first cemetery seed record. The third creates the private memorial photo bucket and storage policies. The fourth adds one sample published burial record for search testing. The fifth creates the saved block-layout table used by Admin, Map, and Visitor pages. The sixth imports the original Sligo demo names, plots, and burials into Supabase. The seventh creates the first map calibration record. The eighth adds entrance/QR layouts and plot assignment tracking. The ninth makes resident plot assignment updates reliable.
+The tenth repairs older map calibration databases where columns were missing. The eleventh adds the Remake persistence table used for multi-cemetery prototype plots, burials, entrances, and multi-plot resident spans.
 
 ## 3. Admin Save Token
 
@@ -88,7 +91,7 @@ In `/admin`, use the Real map calibration panel to adjust the centre point and o
 
 ## 7. Admin Layout, Entrances, and Plot Rules
 
-Run migrations `008` and `009` before using the restored Admin tools.
+Run migrations `008`, `009`, `010`, and `011` before using the restored Admin tools.
 
 In `/admin` you can now:
 
@@ -104,7 +107,17 @@ In `/admin` you can now:
 
 The QR link opens `/visitor?entrance=...`. The visitor map starts near that entrance and asks the browser for live location permission when available.
 
-## 8. Auth
+## 8. Remake Live Saves
+
+The Remake prototype is served from `/remake/index.html`. It reads from Supabase when data is available and falls back to the bundled local JSON files when the new Remake tables are not ready yet.
+
+Before using live saves in the Remake admin screen:
+
+1. Run `supabase/migrations/011_remake_multicemetery_persistence.sql` in Supabase SQL Editor.
+2. Confirm `GRAVEGUIDE_ADMIN_TOKEN` exists in Vercel.
+3. Open `/remake/index.html`, switch to Admin, paste the same admin save key, then save the cemetery, block, entrance, or resident changes.
+
+## 9. Auth
 
 Enable email auth in Supabase Auth. New users automatically receive a row in `public.profiles`.
 
@@ -118,7 +131,7 @@ where id = 'YOUR_USER_ID';
 
 You can find the user id in Supabase Auth > Users.
 
-## 9. Storage
+## 10. Storage
 
 The storage migration creates a private bucket named:
 
@@ -128,7 +141,7 @@ memorial-photos
 
 Photo metadata is tracked in `public.memorial_photos`.
 
-## 10. Production Domain
+## 11. Production Domain
 
 Use `graveguide.ie` as the canonical production domain. Redirect:
 
