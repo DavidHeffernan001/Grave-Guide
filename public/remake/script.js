@@ -1071,6 +1071,18 @@ function getPlotsFromDataset(data) {
 }
 
 function getCalibrationAnchorSpecs(block) {
+  if (block?.id === "A") {
+    return [
+      { row: 1, plot: 1, x: 6.4, y: 25.1 },
+      { row: 1, plot: 26, x: 8.3, y: 96 },
+      { row: 18, plot: 1, x: 96, y: 4 },
+      { row: 5, plot: 12, x: 30.5, y: 36.6 },
+      { row: 10, plot: 17, x: 58.2, y: 51.5 },
+      { row: 14, plot: 21, x: 80.4, y: 63.4 },
+      { row: 15, plot: 9, x: 85.9, y: 27.7 },
+    ];
+  }
+
   const rows = Math.max(1, Number(block.logicalRows) || 1);
   const rowAt = (ratio) => Math.min(rows, Math.max(1, Math.round(1 + (rows - 1) * ratio)));
   const plotCountForRow = (row) => Number(block.rowPlotCounts?.[row]) || 32;
@@ -1167,6 +1179,14 @@ function startCalibrationForSelectedBlock() {
 }
 
 function ensurePrototypeCalibrationAnchors(data) {
+  const blockA = cemeteryBlocks.find((block) => block.id === "A");
+  if (blockA && Array.isArray(data.plots)) {
+    removeGeneratedCalibrationAnchors("A", data);
+    getCalibrationAnchorSpecs(blockA).forEach((spec, index) => {
+      data.plots.push(createCalibrationAnchorPlot(blockA, spec, index));
+    });
+  }
+
   const andrewPlot = data.plots?.find((plot) => plot.id === "A-01-001");
   if (andrewPlot) {
     andrewPlot.calibrationEnabled = true;

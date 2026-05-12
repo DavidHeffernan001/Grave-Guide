@@ -34,8 +34,8 @@
       "side": "left-facing-in",
       "plotNumber": 1,
       "positionInBlock": {
-        "xPercent": 8,
-        "yPercent": 8
+        "xPercent": 6.4,
+        "yPercent": 25.1
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -45,10 +45,10 @@
       "blockId": "A",
       "stripId": "A-S01",
       "side": "left-facing-in",
-      "plotNumber": 32,
+      "plotNumber": 26,
       "positionInBlock": {
-        "xPercent": 8,
-        "yPercent": 92
+        "xPercent": 8.3,
+        "yPercent": 96
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -56,12 +56,12 @@
     {
       "id": "A-CAL-03",
       "blockId": "A",
-      "stripId": "A-S05",
+      "stripId": "A-S09",
       "side": "row-2",
       "plotNumber": 1,
       "positionInBlock": {
-        "xPercent": 92,
-        "yPercent": 8
+        "xPercent": 96,
+        "yPercent": 4
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -69,12 +69,12 @@
     {
       "id": "A-CAL-04",
       "blockId": "A",
-      "stripId": "A-S02",
+      "stripId": "A-S03",
       "side": "left-facing-in",
       "plotNumber": 12,
       "positionInBlock": {
-        "xPercent": 29,
-        "yPercent": 37.4
+        "xPercent": 30.5,
+        "yPercent": 36.6
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -82,12 +82,12 @@
     {
       "id": "A-CAL-05",
       "blockId": "A",
-      "stripId": "A-S03",
+      "stripId": "A-S05",
       "side": "row-2",
       "plotNumber": 17,
       "positionInBlock": {
-        "xPercent": 50,
-        "yPercent": 50
+        "xPercent": 58.2,
+        "yPercent": 51.5
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -95,12 +95,12 @@
     {
       "id": "A-CAL-06",
       "blockId": "A",
-      "stripId": "A-S04",
+      "stripId": "A-S07",
       "side": "row-2",
       "plotNumber": 21,
       "positionInBlock": {
-        "xPercent": 71,
-        "yPercent": 62.6
+        "xPercent": 80.4,
+        "yPercent": 63.4
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
@@ -108,12 +108,12 @@
     {
       "id": "A-CAL-07",
       "blockId": "A",
-      "stripId": "A-S05",
+      "stripId": "A-S08",
       "side": "left-facing-in",
       "plotNumber": 9,
       "positionInBlock": {
-        "xPercent": 79.39999999999999,
-        "yPercent": 29
+        "xPercent": 85.9,
+        "yPercent": 27.7
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
