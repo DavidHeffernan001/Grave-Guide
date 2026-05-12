@@ -484,8 +484,14 @@ function markBlocksUnsaved() {
   blockSaveStatus.textContent = "Unsaved changes";
 }
 
-function markBlocksSaved() {
-  blockSaveStatus.textContent = "Saved to data/blocks.json";
+function markBlocksSaved(source = "browser") {
+  blockSaveStatus.textContent =
+    source === "supabase" ? "Saved to live database" : source === "browser-fallback" ? "Saved in browser fallback" : "Browser backup loaded";
+}
+
+function getFriendlySaveError(error) {
+  const message = error instanceof Error ? error.message : "";
+  return message.toLowerCase().includes("admin save key") ? "Admin save key needed. Browser backup saved." : "Live save failed. Browser backup saved.";
 }
 
 function getAdminSaveHeaders() {
@@ -575,9 +581,9 @@ async function saveBlockLayout() {
       throw new Error(result.error || "Could not save blocks");
     }
 
-    markBlocksSaved();
+    markBlocksSaved(result.source);
   } catch (error) {
-    blockSaveStatus.textContent = "Could not save to file. Browser backup saved.";
+    blockSaveStatus.textContent = getFriendlySaveError(error);
     console.error(error);
   }
 }
@@ -622,7 +628,7 @@ async function savePlotData(nextData, statusElement = activeCalibrationValue) {
     throw new Error(result.error || "Could not save plot data");
   }
 
-  if (statusElement) statusElement.textContent = "Saved to plots/burials data";
+  if (statusElement) statusElement.textContent = result.source === "supabase" ? "Saved to live database" : "Saved in browser fallback";
 }
 
 async function saveCalibrations() {
@@ -634,7 +640,7 @@ async function saveCalibrations() {
     const nextData = getPlotDataWithCalibrations(currentData);
     await savePlotData(nextData, activeCalibrationValue);
   } catch (error) {
-    activeCalibrationValue.textContent = "Browser backup saved. File save is blocked in this workspace.";
+    activeCalibrationValue.textContent = getFriendlySaveError(error);
     console.error(error);
   }
 
@@ -800,7 +806,7 @@ async function addTestCemetery() {
   try {
     await saveCemeteryConfig();
   } catch (error) {
-    addCemeteryStatus.textContent = `${cemetery.name} added in browser. File save failed.`;
+    addCemeteryStatus.textContent = `${cemetery.name} added in browser. ${getFriendlySaveError(error)}`;
     console.error(error);
   }
   await setActiveCemetery(cemetery.id);
@@ -1112,7 +1118,7 @@ async function addResident() {
       nextOpening ? ` Next 1-space opening: Row ${nextOpening.rowNumber}, Plot ${nextOpening.plotNumber}.` : ""
     }`;
   } catch (error) {
-    residentStatus.textContent = `${fullName} added in browser. File save is blocked in this workspace.`;
+    residentStatus.textContent = `${fullName} added in browser. ${getFriendlySaveError(error)}`;
     console.error(error);
   }
 }
@@ -2301,7 +2307,7 @@ saveResidentEditButton.addEventListener("click", async () => {
     await savePlotData(plotSourceData, residentEditStatus);
     residentEditStatus.textContent = `${fullName} updated.`;
   } catch (error) {
-    residentEditStatus.textContent = `${fullName} updated in browser. File save is blocked in this workspace.`;
+    residentEditStatus.textContent = `${fullName} updated in browser. ${getFriendlySaveError(error)}`;
     console.error(error);
   }
 });
