@@ -1632,15 +1632,13 @@ function renderUserMarker() {
 function getResponsiveBlockScale() {
   const { width } = getMapSize();
   const viewportScale = (width || referenceMapWidth) / referenceMapWidth;
-  const touchAdminScale = window.matchMedia("(pointer: coarse)").matches ? 0.64 : 1;
-  return viewportScale * touchAdminScale;
+  return viewportScale;
 }
 
 function getResponsiveBlockPosition(calibration) {
-  const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
   return {
     x: calibration.x,
-    y: isTouchDevice ? calibration.y + 4.5 : calibration.y,
+    y: calibration.y,
   };
 }
 
