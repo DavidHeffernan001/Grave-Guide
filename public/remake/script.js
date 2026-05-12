@@ -1170,7 +1170,7 @@ function startCalibrationForSelectedBlock() {
   activeCalibrationId = null;
 
   if (plotSourceData) {
-    ensureCalibrationAnchorsForBlock(block, plotSourceData, { rebuild: true });
+    ensureCalibrationAnchorsForBlock(block, plotSourceData);
     plotRecords = flattenPlotRecords(plotSourceData, activeCemetery);
   }
 
@@ -1181,10 +1181,7 @@ function startCalibrationForSelectedBlock() {
 function ensurePrototypeCalibrationAnchors(data) {
   const blockA = cemeteryBlocks.find((block) => block.id === "A");
   if (blockA && Array.isArray(data.plots)) {
-    removeGeneratedCalibrationAnchors("A", data);
-    getCalibrationAnchorSpecs(blockA).forEach((spec, index) => {
-      data.plots.push(createCalibrationAnchorPlot(blockA, spec, index));
-    });
+    ensureCalibrationAnchorsForBlock(blockA, data);
   }
 
   const andrewPlot = data.plots?.find((plot) => plot.id === "A-01-001");
