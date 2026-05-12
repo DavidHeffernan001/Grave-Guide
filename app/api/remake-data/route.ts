@@ -21,6 +21,11 @@ type EntranceLayoutRow = {
   entrances: unknown;
 };
 
+type RemakeLayoutItem = {
+  cemeteryId?: string;
+  [key: string]: unknown;
+};
+
 function cemeteryFromRow(row: CemeteryRow) {
   const knownBounds: Record<string, { bbox: number[]; centre: { longitude: number; latitude: number } }> = {
     "sligo-town-cemetery": {
@@ -104,10 +109,20 @@ export async function GET() {
     }
 
     const blocks = ((blockLayoutsResult.data ?? []) as BlockLayoutRow[]).flatMap((row) =>
-      Array.isArray(row.blocks) ? row.blocks : []
+      Array.isArray(row.blocks)
+        ? (row.blocks as RemakeLayoutItem[]).map((block) => ({
+            ...block,
+            cemeteryId: block.cemeteryId || row.cemetery_slug
+          }))
+        : []
     );
     const entrances = ((entranceLayoutsResult.data ?? []) as EntranceLayoutRow[]).flatMap((row) =>
-      Array.isArray(row.entrances) ? row.entrances : []
+      Array.isArray(row.entrances)
+        ? (row.entrances as RemakeLayoutItem[]).map((entrance) => ({
+            ...entrance,
+            cemeteryId: entrance.cemeteryId || row.cemetery_slug
+          }))
+        : []
     );
 
     return NextResponse.json({
