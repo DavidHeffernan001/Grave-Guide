@@ -1234,7 +1234,7 @@ async function addResident() {
 function renderSearchResults(query = "") {
   const normalisedQuery = query.trim().toLowerCase();
   if (!normalisedQuery) {
-    searchResults.innerHTML = `<p class="empty-results">Start typing a name to search records</p>`;
+    searchResults.innerHTML = `<p class="empty-results">Start typing a name</p>`;
     return;
   }
 
@@ -1264,7 +1264,7 @@ function renderSearchResults(query = "") {
     .join("");
 
   if (!matches.length) {
-    searchResults.innerHTML = `<p class="empty-results">No matching test records</p>`;
+    searchResults.innerHTML = `<p class="empty-results">No matching records</p>`;
   }
 }
 
@@ -1928,6 +1928,7 @@ document.addEventListener("click", (event) => {
     if (record) {
       selectRecord(record);
       setState("selected");
+      searchInput.blur();
     }
     return;
   }
