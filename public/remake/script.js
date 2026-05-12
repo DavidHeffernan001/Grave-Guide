@@ -1735,6 +1735,7 @@ function getPlotPositionInBlock(record) {
     (item) =>
       item.blockId === record.blockId &&
       item.stripId === record.stripId &&
+      item.side === record.side &&
       item.plotNumber === 1 &&
       item.calibratedPositionInBlock,
   );
@@ -1804,7 +1805,30 @@ function getBlockMapPoint(plotPosition, blockCalibration) {
   };
 }
 
+function getKnownPlotMapPosition(record) {
+  if (
+    activeCemetery?.id === "sligo-town-cemetery" &&
+    record.blockId === "A" &&
+    Number(record.rowNumber) === 2 &&
+    Number(record.plotNumber) === 1 &&
+    !record.calibratedPositionInBlock
+  ) {
+    const mainEntrance = cemeteryEntrances.find((entrance) => entrance.id === "sligo-main-entrance") || cemeteryEntrances[0];
+    if (mainEntrance?.mapPosition) {
+      return {
+        x: Math.min(98, Math.max(2, mainEntrance.mapPosition.x - 1.6)),
+        y: Math.min(98, Math.max(2, mainEntrance.mapPosition.y + 3.2)),
+      };
+    }
+  }
+
+  return null;
+}
+
 function getSelectedPlotScreenPosition(record) {
+  const knownPosition = getKnownPlotMapPosition(record);
+  if (knownPosition) return knownPosition;
+
   const plotPosition = getPlotPositionInBlock(record);
   const blockCalibration = getBlockCalibration(record.blockId);
   const mapPoint = getBlockMapPoint(plotPosition, blockCalibration);
