@@ -905,6 +905,20 @@ function ensurePrototypeCalibrationAnchors(data) {
 }
 
 async function loadPlotData(cemetery) {
+  try {
+    const response = await fetch(`/api/remake-plot-data?cemetery=${encodeURIComponent(cemetery.id)}`);
+    const apiData = await response.json();
+    if (apiData.source === "supabase" && Array.isArray(apiData.plots) && Array.isArray(apiData.burials)) {
+      return ensurePrototypeCalibrationAnchors({
+        cemetery: apiData.cemetery || cemetery,
+        plots: apiData.plots,
+        burials: apiData.burials,
+      });
+    }
+  } catch (error) {
+    console.warn("Using bundled plot data fallback.", error);
+  }
+
   if (!cemetery?.plotDataUrl || !cemetery?.burialDataUrl) {
     return { cemetery, plots: [], burials: [] };
   }
@@ -1181,6 +1195,20 @@ function selectRecord(record) {
 }
 
 async function loadTestPlots() {
+  try {
+    const apiResponse = await fetch("/api/remake-data");
+    const apiData = await apiResponse.json();
+    if (apiData.source === "supabase" && apiData.cemeteriesConfig?.cemeteries?.length) {
+      cemeteriesConfig = apiData.cemeteriesConfig;
+      allCemeteryEntrances = Array.isArray(apiData.entrances) ? apiData.entrances : [];
+      allCemeteryBlocks = Array.isArray(apiData.blocks) ? apiData.blocks : [];
+      await setActiveCemetery(cemeteriesConfig.activeCemeteryId || cemeteriesConfig.cemeteries[0]?.id);
+      return;
+    }
+  } catch (error) {
+    console.warn("Using bundled cemetery data fallback.", error);
+  }
+
   const [cemeteriesResponse, entrancesResponse, blocksResponse] = await Promise.all([
     fetch("data/cemeteries.json"),
     fetch("data/entrances.json"),
