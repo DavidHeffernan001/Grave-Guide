@@ -1883,6 +1883,82 @@ h1 {
   display: none !important;
 }
 
+body[data-shell="visitor-map"] {
+  overflow: hidden;
+}
+
+body[data-shell="visitor-map"] .workspace {
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-shell="visitor-map"] .intro,
+body[data-shell="visitor-map"] .flow-panel,
+body[data-shell="visitor-map"] .interaction-notes,
+body[data-shell="visitor-map"] .mapping-board {
+  display: none;
+}
+
+body[data-shell="visitor-map"] .prototype-layout,
+body[data-shell="visitor-map"] .phone-stage {
+  display: block;
+  width: 100%;
+  height: 100dvh;
+}
+
+body[data-shell="visitor-map"] .phone {
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: auto;
+  box-shadow: none;
+}
+
+body[data-shell="visitor-map"] .phone::before {
+  display: none;
+}
+
+body[data-shell="visitor-map"] .screen {
+  border-radius: 0;
+}
+
+body[data-shell="visitor-map"] .top-search {
+  top: max(18px, env(safe-area-inset-top));
+}
+
+body[data-shell="visitor-map"] .bottom-sheet {
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+body[data-shell="admin-map"] .workspace {
+  width: min(1720px, calc(100% - 32px));
+}
+
+body[data-shell="admin-map"] .intro,
+body[data-shell="admin-map"] .flow-panel,
+body[data-shell="admin-map"] .mapping-board {
+  display: none;
+}
+
+body[data-shell="admin-map"] .prototype-layout {
+  display: block;
+}
+
+body[data-shell="admin-map"] .phone-stage {
+  grid-template-columns: minmax(560px, 1fr) minmax(330px, 430px);
+  align-items: start;
+}
+
+body[data-shell="admin-map"] .phone {
+  width: min(100%, 760px);
+  max-height: calc(100dvh - 48px);
+}
+
 @media (max-width: 980px) {
   .intro,
   .prototype-layout,

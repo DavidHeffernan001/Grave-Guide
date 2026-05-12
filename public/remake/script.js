@@ -172,6 +172,9 @@ let cemeteryLeafletBounds = null;
 const blockStorageKey = "graveguide-sligo-block-layout";
 const adminSaveTokenKey = "graveguide-admin-save-token";
 const referenceMapWidth = 390;
+const remakeUrlParams = new URLSearchParams(window.location.search);
+const requestedShell = remakeUrlParams.get("view") || remakeUrlParams.get("shell") || "demo";
+const requestedState = remakeUrlParams.get("state");
 
 const visiblePanels = {
   welcome: ["welcome"],
@@ -217,6 +220,31 @@ function setWorkspaceMode(mode) {
     button.classList.toggle("active", button.dataset.modeOption === mode);
   });
   adminModeStatus.textContent = mode === "admin" ? "Admin tools active" : "Visitor preview";
+  scheduleCemeteryLeafletSync();
+}
+
+function applyRemakeShellMode() {
+  const shell = ["visitor-map", "admin-map"].includes(requestedShell) ? requestedShell : "demo";
+  document.body.dataset.shell = shell;
+
+  if (shell === "visitor-map") {
+    setWorkspaceMode("visitor");
+    mapZoom = Number(remakeUrlParams.get("zoom")) || 1;
+    mapPan = { x: 0, y: 0 };
+    headingUp = false;
+    renderMapPan();
+    renderHeading();
+    setMapZoom(mapZoom);
+    setState(requestedState || "search");
+  }
+
+  if (shell === "admin-map") {
+    setWorkspaceMode("admin");
+    setState(requestedState || "map");
+  }
+
+  renderBlockA();
+  renderUserMarker();
   scheduleCemeteryLeafletSync();
 }
 
@@ -1896,25 +1924,6 @@ function getBlockMapPoint(plotPosition, blockCalibration) {
 }
 
 function getKnownPlotMapPosition(record) {
-  const isJoshRayesTestRecord =
-    record.id === "burial-test-1778555104248" ||
-    record.plotId === "A-02-001-TEST-009" ||
-    record.fullName?.toLowerCase() === "josh rayes";
-
-  if (
-    (activeCemetery?.id === "sligo-town-cemetery" || record.cemeteryId === "sligo-town-cemetery") &&
-    record.blockId === "A" &&
-    ((Number(record.rowNumber) === 2 && Number(record.plotNumber) === 1) || isJoshRayesTestRecord)
-  ) {
-    const mainEntrance = cemeteryEntrances.find((entrance) => entrance.id === "sligo-main-entrance") || cemeteryEntrances[0];
-    if (mainEntrance?.mapPosition) {
-      return {
-        x: Math.min(98, Math.max(2, mainEntrance.mapPosition.x - 1.6)),
-        y: Math.min(98, Math.max(2, mainEntrance.mapPosition.y + 3.2)),
-      };
-    }
-  }
-
   return null;
 }
 
@@ -2757,4 +2766,7 @@ renderHeading();
 renderBlockA();
 renderUserMarker();
 setWorkspaceMode("visitor");
-loadTestPlots().then(() => setState("welcome"));
+loadTestPlots().then(() => {
+  setState("welcome");
+  applyRemakeShellMode();
+});
