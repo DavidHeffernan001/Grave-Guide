@@ -26,6 +26,9 @@ const mapArea = document.querySelector(".osm-map");
 const mapTransform = document.querySelector("[data-map-transform]");
 const cemeteryMapFrame = document.querySelector("#cemeteryMapFrame");
 const mapOverlayNote = document.querySelector(".map-overlay-note");
+const allowLocationButton = document.querySelector("#allowLocation");
+const locateButton = document.querySelector(".locate-button");
+const locationStatus = document.querySelector("#locationStatus");
 const editableBlock = document.querySelector("[data-editable-block='A']");
 const blockSelect = document.querySelector("#blockSelect");
 const addBlockButton = document.querySelector("#addBlock");
@@ -143,6 +146,12 @@ let cornerDrag = null;
 let userPosition = {
   x: 76.6,
   y: 16.4,
+};
+let liveLocation = {
+  watchId: null,
+  bestAccuracy: Infinity,
+  lastFixAt: 0,
+  source: "entrance",
 };
 let plotRecords = [];
 let plotSourceData = null;
@@ -444,6 +453,91 @@ function getApproxDistanceMetres(record) {
   const dy = ((target.y - userPosition.y) / 100) * heightMetres;
 
   return Math.max(1, Math.round(Math.sqrt(dx * dx + dy * dy)));
+}
+
+function getMapPositionFromCoordinates(latitude, longitude, cemetery = activeCemetery) {
+  const bbox = getCemeteryMapBounds(cemetery);
+  const [west, south, east, north] = bbox;
+  const x = ((longitude - west) / (east - west)) * 100;
+  const y = ((north - latitude) / (north - south)) * 100;
+
+  return {
+    x: Math.min(98, Math.max(2, x)),
+    y: Math.min(98, Math.max(2, y)),
+    outsideMap: x < 0 || x > 100 || y < 0 || y > 100,
+  };
+}
+
+function updateLocationStatus(message, state = "idle") {
+  if (!locationStatus) return;
+  locationStatus.hidden = false;
+  locationStatus.textContent = message;
+  locationStatus.dataset.locationState = state;
+}
+
+function shouldAcceptLocationFix(accuracy) {
+  if (!Number.isFinite(accuracy)) return true;
+  if (!Number.isFinite(liveLocation.bestAccuracy)) return true;
+  if (accuracy <= liveLocation.bestAccuracy + 8) return true;
+  if (Date.now() - liveLocation.lastFixAt > 30000) return true;
+  return accuracy <= liveLocation.bestAccuracy * 1.6;
+}
+
+function applyLiveLocationFix(position) {
+  const { latitude, longitude, accuracy } = position.coords;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+  if (!shouldAcceptLocationFix(accuracy)) {
+    updateLocationStatus(`Holding better fix: ${Math.round(liveLocation.bestAccuracy)}m`, liveLocation.bestAccuracy <= 25 ? "good" : "rough");
+    return;
+  }
+
+  const mapPosition = getMapPositionFromCoordinates(latitude, longitude);
+  userPosition = {
+    x: Number(mapPosition.x.toFixed(2)),
+    y: Number(mapPosition.y.toFixed(2)),
+  };
+  liveLocation.bestAccuracy = Math.min(liveLocation.bestAccuracy, Number.isFinite(accuracy) ? accuracy : liveLocation.bestAccuracy);
+  liveLocation.lastFixAt = Date.now();
+  liveLocation.source = "gps";
+  renderUserMarker();
+
+  const roundedAccuracy = Number.isFinite(accuracy) ? Math.round(accuracy) : null;
+  const quality = roundedAccuracy !== null && roundedAccuracy <= 25 ? "good" : roundedAccuracy !== null && roundedAccuracy <= 60 ? "ok" : "rough";
+  const outsideText = mapPosition.outsideMap ? " - outside mapped cemetery area" : "";
+  updateLocationStatus(roundedAccuracy === null ? `Location updated${outsideText}` : `Accuracy ${roundedAccuracy}m${outsideText}`, quality);
+}
+
+function handleLocationError(error) {
+  const messages = {
+    1: "Location permission blocked",
+    2: "Location unavailable",
+    3: "Location timed out",
+  };
+  updateLocationStatus(messages[error?.code] || "Location unavailable", "error");
+}
+
+function startHighAccuracyLocation() {
+  if (!navigator.geolocation) {
+    updateLocationStatus("Location not supported on this browser", "error");
+    return;
+  }
+
+  updateLocationStatus("Locating...", "loading");
+  if (liveLocation.watchId !== null) {
+    navigator.geolocation.clearWatch(liveLocation.watchId);
+  }
+  liveLocation.bestAccuracy = Infinity;
+  liveLocation.lastFixAt = 0;
+
+  const options = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 20000,
+  };
+
+  navigator.geolocation.getCurrentPosition(applyLiveLocationFix, handleLocationError, options);
+  liveLocation.watchId = navigator.geolocation.watchPosition(applyLiveLocationFix, handleLocationError, options);
 }
 
 function renderEntranceControls() {
@@ -1971,6 +2065,13 @@ headingToggle.addEventListener("click", () => {
 headingRotationInput.addEventListener("input", () => {
   headingRotation = Number(headingRotationInput.value);
   renderHeading();
+});
+
+allowLocationButton.addEventListener("click", startHighAccuracyLocation);
+
+locateButton.addEventListener("click", () => {
+  setState("map");
+  startHighAccuracyLocation();
 });
 
 mapTransform.addEventListener("pointerdown", (event) => {

@@ -1105,6 +1105,44 @@ h1 {
   pointer-events: auto;
 }
 
+.location-status {
+  position: absolute;
+  z-index: 4;
+  right: 20px;
+  bottom: 104px;
+  max-width: 210px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--muted);
+  box-shadow: 0 10px 22px rgba(32, 44, 36, 0.1);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: right;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.app-screen[data-screen="map"] .location-status,
+.app-screen[data-screen="search"] .location-status,
+.app-screen[data-screen="selected"] .location-status,
+.app-screen[data-screen="route"] .location-status {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.location-status[data-location-state="good"] {
+  color: var(--green);
+}
+
+.location-status[data-location-state="rough"],
+.location-status[data-location-state="error"] {
+  color: #9a5b16;
+}
+
 .panel-state {
   position: absolute;
   z-index: 5;

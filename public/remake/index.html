@@ -105,6 +105,7 @@
               <button class="round-button locate-button" aria-label="Locate me">
                 <span class="icon target-icon"></span>
               </button>
+              <div class="location-status" id="locationStatus" hidden>Location not started</div>
 
               <section class="entry-card panel-state welcome-panel">
                 <p class="cemetery-kicker">Sligo Town Cemetery</p>
@@ -124,7 +125,7 @@
                   Location helps place you on the cemetery map. It is only used for on-site
                   guidance.
                 </p>
-                <button class="primary-button" data-next="map">Allow location</button>
+                <button class="primary-button" id="allowLocation" data-next="map">Allow location</button>
                 <button class="secondary-button" data-next="map">Continue without</button>
               </section>
 
