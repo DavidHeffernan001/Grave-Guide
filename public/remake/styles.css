@@ -349,6 +349,26 @@ h1 {
   width: 100%;
 }
 
+.leaflet-remake-map .leaflet-pane,
+.leaflet-remake-map .leaflet-map-pane,
+.leaflet-remake-map .leaflet-tile,
+.leaflet-remake-map .leaflet-tile-container,
+.leaflet-remake-map .leaflet-layer,
+.leaflet-remake-map .leaflet-zoom-box {
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.leaflet-remake-map .leaflet-tile {
+  border: 0;
+  height: 256px;
+  max-height: none;
+  max-width: none;
+  padding: 0;
+  width: 256px;
+}
+
 .leaflet-remake-map .leaflet-control-container {
   display: none;
 }
