@@ -1,0 +1,101 @@
+{
+  "id": "block-a",
+  "cemeteryId": "sligo-town-cemetery",
+  "name": "Block A",
+  "status": "draft-from-user-reference",
+  "referenceInputs": [
+    {
+      "type": "user-marked-osm-image",
+      "description": "Main entrance marked with red/yellow dot; Block A identified by user."
+    },
+    {
+      "type": "user-marked-satellite-image",
+      "description": "Main entrance marked with red dot and blue arrow pointing into the graveyard."
+    }
+  ],
+  "orientation": {
+    "entrance": "main entrance on Cemetery Road",
+    "forwardDirection": "into the graveyard from the entrance, following the red arrow supplied by user",
+    "prototypeAssumption": "Block A sits inside the first upper footpath-bounded block. Rows run left to right as the visitor walks into the graveyard."
+  },
+  "rowModel": {
+    "status": "draft-strip-count-known",
+    "physicalStripCount": 9,
+    "logicalRowCount": 18,
+    "stripDirection": "left-to-right-facing-into-graveyard",
+    "graveArrangement": "each physical strip has graves on both sides, back-to-back with the adjacent side",
+    "sides": [
+      { "id": "left-facing-in", "rowOffset": 0 },
+      { "id": "right-facing-in", "rowOffset": 1 }
+    ],
+    "strips": [
+      {
+        "id": "A-S01",
+        "label": "Strip 1",
+        "sides": [
+          { "side": "left-facing-in", "graveCount": 26, "reason": "Storeroom reduces available plots on the right when entering from the main entrance." },
+          { "side": "right-facing-in", "graveCount": 26, "reason": "Storeroom reduces available plots on the right when entering from the main entrance." }
+        ]
+      },
+      { "id": "A-S02", "label": "Strip 2", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S03", "label": "Strip 3", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S04", "label": "Strip 4", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S05", "label": "Strip 5", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S06", "label": "Strip 6", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S07", "label": "Strip 7", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S08", "label": "Strip 8", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] },
+      { "id": "A-S09", "label": "Strip 9", "sides": [{ "side": "left-facing-in", "graveCount": 32 }, { "side": "right-facing-in", "graveCount": 32 }] }
+    ],
+    "logicalRows": [
+      { "id": "A-R01", "stripId": "A-S01", "side": "left-facing-in", "graveCount": 26 },
+      { "id": "A-R02", "stripId": "A-S01", "side": "right-facing-in", "graveCount": 26 },
+      { "id": "A-R03", "stripId": "A-S02", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R04", "stripId": "A-S02", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R05", "stripId": "A-S03", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R06", "stripId": "A-S03", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R07", "stripId": "A-S04", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R08", "stripId": "A-S04", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R09", "stripId": "A-S05", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R10", "stripId": "A-S05", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R11", "stripId": "A-S06", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R12", "stripId": "A-S06", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R13", "stripId": "A-S07", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R14", "stripId": "A-S07", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R15", "stripId": "A-S08", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R16", "stripId": "A-S08", "side": "right-facing-in", "graveCount": 32 },
+      { "id": "A-R17", "stripId": "A-S09", "side": "left-facing-in", "graveCount": 32 },
+      { "id": "A-R18", "stripId": "A-S09", "side": "right-facing-in", "graveCount": 32 }
+    ],
+    "estimatedTotalPlots": 564,
+    "notes": [
+      "User has identified 9 physical strips in Block A.",
+      "Each physical strip has graves on both sides.",
+      "User has identified 26 plots per side on Strip 1 and 32 plots per side on Strips 2-9.",
+      "The storeroom is on the right when walking in from the main entrance, reducing Row 1.",
+      "Rows and plots should be numbered after confirming count direction on site."
+    ]
+  },
+  "uiOverlay": {
+    "status": "user-calibrated-prototype",
+    "coordinateSystem": "percentage-position-over-current-osm-iframe-view",
+    "xPercent": 76.7,
+    "yPercent": 25.1,
+    "widthPx": 116,
+    "heightPx": 127,
+    "rotationDeg": 39,
+    "rectangularCutoutPercent": {
+      "x": -1,
+      "y": -2,
+      "width": 14,
+      "height": 19,
+      "purpose": "Approximate storeroom/building cut-out from Block A."
+    },
+    "note": "User calibrated Block A visually in the prototype. This is suitable for UI calibration but should later be converted to real map geometry."
+  },
+  "mainEntrancePrototype": {
+    "coordinateSystem": "percentage-position-over-current-osm-iframe-view",
+    "xPercent": 76.6,
+    "yPercent": 16.4,
+    "note": "Prototype QR scan/user starting point. User can drag this marker in the UI to calibrate the entrance."
+  }
+}

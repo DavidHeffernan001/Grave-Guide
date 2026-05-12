@@ -1,0 +1,352 @@
+[
+  {
+    "id": "A",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Block A",
+    "physicalStrips": 9,
+    "rowsPerStrip": 2,
+    "blockShape": "rectangle",
+    "stripRowCounts": {
+      "1": 2,
+      "2": 2,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 2,
+      "7": 2,
+      "8": 2,
+      "9": 2
+    },
+    "blockTemplate": "standard-2",
+    "logicalRows": 18,
+    "rowPlotCounts": {
+      "1": 26,
+      "2": 26,
+      "3": 32,
+      "4": 32,
+      "5": 32,
+      "6": 32,
+      "7": 32,
+      "8": 32,
+      "9": 32,
+      "10": 32,
+      "11": 32,
+      "12": 32,
+      "13": 32,
+      "14": 32,
+      "15": 32,
+      "16": 32,
+      "17": 32,
+      "18": 32
+    },
+    "rowRules": [
+      {
+        "rows": [
+          1,
+          2
+        ],
+        "plotsPerRow": 26
+      },
+      {
+        "rows": [
+          3,
+          18
+        ],
+        "plotsPerRow": 32
+      }
+    ],
+    "calibration": {
+      "x": 59.315559293523975,
+      "y": 24.840211216897345,
+      "width": 97,
+      "height": 121,
+      "rotate": 39,
+      "cutout": {
+        "x": -2,
+        "y": -1,
+        "width": 10,
+        "height": 15
+      }
+    }
+  },
+  {
+    "id": "B",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Block B",
+    "physicalStrips": 10,
+    "rowsPerStrip": 2,
+    "blockShape": "rectangle",
+    "stripRowCounts": {
+      "1": 2,
+      "2": 2,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 2,
+      "7": 2,
+      "8": 2,
+      "9": 2,
+      "10": 2
+    },
+    "blockTemplate": "standard-2",
+    "logicalRows": 20,
+    "rowPlotCounts": {
+      "1": 18,
+      "2": 18,
+      "3": 18,
+      "4": 18,
+      "5": 18,
+      "6": 18,
+      "7": 18,
+      "8": 18,
+      "9": 18,
+      "10": 18,
+      "11": 18,
+      "12": 18,
+      "13": 18,
+      "14": 18,
+      "15": 18,
+      "16": 18,
+      "17": 18,
+      "18": 18,
+      "19": 18,
+      "20": 18
+    },
+    "rowRules": [
+      {
+        "rows": [
+          1,
+          20
+        ],
+        "plotsPerRow": 18
+      }
+    ],
+    "calibration": {
+      "x": 83.69882253994953,
+      "y": 28.89977598207857,
+      "width": 109,
+      "height": 60,
+      "rotate": 39,
+      "cutout": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  {
+    "id": "C",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Block C",
+    "physicalStrips": 10,
+    "rowsPerStrip": 2,
+    "blockShape": "rectangle",
+    "stripRowCounts": {
+      "1": 2,
+      "2": 2,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 2,
+      "7": 2,
+      "8": 2,
+      "9": 2,
+      "10": 2
+    },
+    "blockTemplate": "standard-2",
+    "logicalRows": 20,
+    "rowPlotCounts": {
+      "1": 32,
+      "2": 32,
+      "3": 32,
+      "4": 32,
+      "5": 32,
+      "6": 32,
+      "7": 32,
+      "8": 32,
+      "9": 32,
+      "10": 32,
+      "11": 32,
+      "12": 32,
+      "13": 32,
+      "14": 32,
+      "15": 32,
+      "16": 32,
+      "17": 32,
+      "18": 32,
+      "19": 32,
+      "20": 32
+    },
+    "rowRules": [
+      {
+        "rows": [
+          1,
+          2
+        ],
+        "plotsPerRow": 32
+      }
+    ],
+    "calibration": {
+      "x": 73.72304457527326,
+      "y": 34.72066565325227,
+      "width": 111,
+      "height": 63,
+      "rotate": 39,
+      "cutout": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  {
+    "id": "D",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Block D",
+    "physicalStrips": 6,
+    "rowsPerStrip": 2,
+    "blockShape": "polygon",
+    "stripRowCounts": {
+      "1": 2,
+      "2": 2,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 2
+    },
+    "blockTemplate": "standard-2",
+    "logicalRows": 12,
+    "rowPlotCounts": {
+      "1": 25,
+      "2": 25,
+      "3": 25,
+      "4": 25,
+      "5": 25,
+      "6": 25,
+      "7": 25,
+      "8": 32,
+      "9": 32,
+      "10": 32,
+      "11": 32,
+      "12": 32
+    },
+    "rowRules": [
+      {
+        "rows": [
+          1,
+          12
+        ],
+        "plotsPerRow": 32
+      }
+    ],
+    "calibration": {
+      "x": 116.32985014019675,
+      "y": 27.809232371977632,
+      "width": 101,
+      "height": 116,
+      "rotate": 39,
+      "cutout": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "polygon": [
+        {
+          "x": 0,
+          "y": 3.6
+        },
+        {
+          "x": 68.8,
+          "y": 27.9
+        },
+        {
+          "x": 44.1,
+          "y": 99.8
+        },
+        {
+          "x": 0,
+          "y": 98.5
+        }
+      ]
+    }
+  },
+  {
+    "id": "A",
+    "cemeteryId": "strandhill-rd-cemetery",
+    "name": "Block A",
+    "physicalStrips": 5,
+    "rowsPerStrip": 2,
+    "blockShape": "rectangle",
+    "stripRowCounts": {
+      "1": 2,
+      "2": 2,
+      "3": 2,
+      "4": 2,
+      "5": 2
+    },
+    "blockTemplate": "standard-2",
+    "logicalRows": 10,
+    "rowPlotCounts": {
+      "1": 32,
+      "2": 32,
+      "3": 32,
+      "4": 32,
+      "5": 32,
+      "6": 32,
+      "7": 32,
+      "8": 32,
+      "9": 32,
+      "10": 32
+    },
+    "rowRules": [
+      {
+        "rows": [
+          1,
+          2
+        ],
+        "plotsPerRow": 26
+      },
+      {
+        "rows": [
+          3,
+          18
+        ],
+        "plotsPerRow": 32
+      }
+    ],
+    "calibration": {
+      "x": 39.565089692485444,
+      "y": 46.721789991786906,
+      "width": 60.00000863052332,
+      "height": 68.99744605777882,
+      "rotate": -23,
+      "cutout": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "polygon": [
+        {
+          "x": 25.9,
+          "y": 1.1
+        },
+        {
+          "x": 100,
+          "y": 0
+        },
+        {
+          "x": 100,
+          "y": 100
+        },
+        {
+          "x": 23.8,
+          "y": 61.1
+        }
+      ]
+    }
+  }
+]

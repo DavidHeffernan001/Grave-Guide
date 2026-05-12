@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GraveGuide Map First Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="workspace" data-mode="visitor">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="project-label">Sligo Town Cemetery trial</p>
+          <h1 id="page-title">Map-first visitor flow</h1>
+          <p class="intro-copy">
+            A clean mobile web prototype for visitors who scan the Cemetery Road entrance QR
+            code, share location, search a record, and follow a route through the cemetery grid.
+          </p>
+        </div>
+        <div class="top-tools">
+          <div class="mode-switch" aria-label="Workspace mode">
+            <button class="mode-button active" data-mode-option="visitor" type="button">Visitor</button>
+            <button class="mode-button" data-mode-option="admin" type="button">Admin</button>
+          </div>
+          <div class="preview-controls" aria-label="Prototype states">
+            <button class="state-button active" data-state="welcome">QR entry</button>
+            <button class="state-button" data-state="permission">Location</button>
+            <button class="state-button" data-state="map">Map</button>
+            <button class="state-button" data-state="search">Search</button>
+            <button class="state-button" data-state="selected">Selected</button>
+            <button class="state-button" data-state="route">Route</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="prototype-layout">
+        <aside class="flow-panel" aria-label="Suggested app flow">
+          <h2>Core flow</h2>
+          <button class="flow-step active" data-state="welcome">
+            <span>1</span>
+            <strong>Entrance scan</strong>
+            <small>Visitor lands from the QR code at the cemetery gate.</small>
+          </button>
+          <button class="flow-step" data-state="permission">
+            <span>2</span>
+            <strong>Allow location</strong>
+            <small>Explain why location is needed before the browser prompt.</small>
+          </button>
+          <button class="flow-step" data-state="map">
+            <span>3</span>
+            <strong>Show the map</strong>
+            <small>Current position appears immediately on the cemetery map.</small>
+          </button>
+          <button class="flow-step" data-state="search">
+            <span>4</span>
+            <strong>Search records</strong>
+            <small>Name search stays anchored over the map.</small>
+          </button>
+          <button class="flow-step" data-state="selected">
+            <span>5</span>
+            <strong>Select grave</strong>
+            <small>Route preview and grave details appear in the bottom sheet.</small>
+          </button>
+          <button class="flow-step" data-state="route">
+            <span>6</span>
+            <strong>Start guidance</strong>
+            <small>Map remains primary while steps guide the final walk.</small>
+          </button>
+        </aside>
+
+        <div class="phone-stage">
+          <div class="phone">
+            <div class="screen app-screen" data-screen="welcome">
+              <div class="osm-map" aria-label="OpenStreetMap centred on Sligo Cemetery">
+                <div class="map-transform" data-map-transform>
+                  <iframe
+                    id="cemeteryMapFrame"
+                    title="OpenStreetMap - Sligo Cemetery"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=-8.4666%2C54.2587%2C-8.4612%2C54.2604&amp;layer=hot"
+                  ></iframe>
+                  <div class="osm-loading">Loading OpenStreetMap...</div>
+                  <div class="map-overlay-note">Sligo Cemetery</div>
+                  <div class="block-a-overlay editable-block" data-editable-block="A">
+                    <i class="resize-handle" aria-hidden="true"></i>
+                  </div>
+                  <div class="calibration-markers" id="calibrationMarkers"></div>
+                  <div class="grave-pin plot-grave-pin" data-plot-marker></div>
+                  <div class="user-dot editable-user-dot" data-user-marker></div>
+                  <svg class="route-line osm-route" viewBox="0 0 390 800" aria-hidden="true">
+                    <path id="routePath" d="M211 176 C214 196 216 216 219 238 C221 254 223 270 226 286" />
+                  </svg>
+                </div>
+                <div class="zoom-controls" aria-label="Map zoom controls">
+                  <button data-zoom="in" aria-label="Zoom in">+</button>
+                  <button data-zoom="out" aria-label="Zoom out">-</button>
+                </div>
+                <button class="heading-toggle" data-heading-toggle type="button">Facing up</button>
+              </div>
+
+              <div class="top-search">
+                <span class="icon search-icon"></span>
+                <input id="nameSearch" type="text" value="" placeholder="Search by name" />
+              </div>
+
+              <button class="round-button locate-button" aria-label="Locate me">
+                <span class="icon target-icon"></span>
+              </button>
+
+              <section class="entry-card panel-state welcome-panel">
+                <p class="cemetery-kicker">Sligo Town Cemetery</p>
+                <span class="location-pill">
+                  <span class="user-dot tiny"></span>
+                  Main Entrance
+                </span>
+                <h2>Find a grave</h2>
+                <p>Search the cemetery records and get a walking route from the QR scan point.</p>
+                <button class="primary-button" data-next="permission">Begin</button>
+              </section>
+
+              <section class="permission-card panel-state permission-panel" hidden>
+                <span class="icon large-location-icon"></span>
+                <h2>Use your location</h2>
+                <p>
+                  Location helps place you on the cemetery map. It is only used for on-site
+                  guidance.
+                </p>
+                <button class="primary-button" data-next="map">Allow location</button>
+                <button class="secondary-button" data-next="map">Continue without</button>
+              </section>
+
+              <section class="search-sheet panel-state search-panel" hidden>
+                <div class="sheet-handle"></div>
+                <h2>Search results</h2>
+                <div id="searchResults" class="result-list"></div>
+              </section>
+
+              <section class="bottom-sheet panel-state selected-panel" hidden>
+                <div class="sheet-handle"></div>
+                <div class="grave-summary">
+                  <div>
+                    <h2 id="selectedName">Andrew Hosie</h2>
+                    <p id="selectedPlot">Block A - Row 1 - Plot 1</p>
+                  </div>
+                  <span id="selectedWalk">6 min</span>
+                </div>
+                <div class="meta-row">
+                  <span id="selectedDates">1848-1917</span>
+                  <span id="selectedDistance">120 m</span>
+                </div>
+                <button class="primary-button" data-next="route">Start route</button>
+              </section>
+
+              <section class="route-sheet panel-state route-panel" hidden>
+                <div class="route-heading">
+                  <button class="round-button small-round" data-next="selected" aria-label="Back to grave">
+                    <span class="icon back-icon"></span>
+                  </button>
+                  <div>
+                    <h2 id="routeName">To Andrew Hosie</h2>
+                    <p id="routePlot">Block A - Row 1 - Plot 1</p>
+                    <p>Continue along main path</p>
+                  </div>
+                  <strong>6 min</strong>
+                </div>
+                <ol class="steps">
+                  <li class="current">
+                    <span></span>
+                    <p>Continue along main path</p>
+                  </li>
+                  <li>
+                    <span></span>
+                    <p>Enter Block C from the diagonal path</p>
+                  </li>
+                  <li>
+                    <span></span>
+                    <p>Grave is on your right</p>
+                  </li>
+                </ol>
+                <button class="secondary-button full" data-next="map">End route</button>
+              </section>
+            </div>
+          </div>
+
+          <div class="interaction-notes">
+            <div class="admin-heading">
+              <div>
+                <p class="project-label">Admin workspace</p>
+                <h2>Map calibration</h2>
+              </div>
+              <span id="adminModeStatus">Visitor preview</span>
+            </div>
+            <div class="admin-summary">
+              <article>
+                <strong id="cemeteryCountValue">1 cemetery</strong>
+                <span id="activeCemeteryName">Sligo Town Cemetery</span>
+              </article>
+              <article>
+                <strong id="entranceCountValue">1 entrance</strong>
+                <span>Main QR point</span>
+              </article>
+              <article>
+                <strong id="recordCountValue">18 records</strong>
+                <span>Test burial data</span>
+              </article>
+            </div>
+            <div class="block-editor cemetery-selector" aria-label="Cemetery selector">
+              <strong>Cemetery</strong>
+              <label>
+                Select cemetery
+                <select id="cemeterySelect"></select>
+              </label>
+              <div class="block-values">
+                <span id="cemeteryOrgValue">Sligo County Council</span>
+              </div>
+            </div>
+            <div class="block-editor block-manager" aria-label="Block manager">
+              <strong>Blocks</strong>
+              <label>
+                Active block
+                <select id="blockSelect"></select>
+              </label>
+              <button class="secondary-button full" id="addBlock" type="button">Add block</button>
+              <button class="secondary-button full" id="saveBlocks" type="button">Save</button>
+              <button class="secondary-button full danger-soft" id="deleteBlock" type="button">Delete block</button>
+              <div class="block-values">
+                <span id="activeBlockName">Editing Block A</span>
+                <span id="blockSaveStatus">Unsaved changes</span>
+              </div>
+            </div>
+            <div class="block-editor block-adjustments" aria-label="Block controls">
+              <button class="section-toggle" id="toggleBlockControls" type="button" aria-expanded="true">
+                <strong>Block editor</strong>
+                <span>Hide controls</span>
+              </button>
+              <div class="block-controls-body" id="blockControlsBody">
+                <label>
+                  Block shape
+                  <select id="blockShape">
+                    <option value="rectangle">Rectangle</option>
+                    <option value="polygon">Polygon</option>
+                  </select>
+                </label>
+                <label>
+                  Row template
+                  <select id="blockTemplate">
+                    <option value="2">Standard: 2 rows per strip</option>
+                    <option value="3">Wide strip: 3 rows per strip</option>
+                    <option value="4">Large strip: 4 rows per strip</option>
+                    <option value="5">Complex strip: 5 rows per strip</option>
+                  </select>
+                </label>
+                <label>
+                  Strips
+                  <input id="blockStrips" type="number" min="1" max="40" value="9" />
+                </label>
+                <label>
+                  Total rows
+                  <input id="blockRows" type="number" min="1" max="160" value="18" readonly />
+                </label>
+                <label>
+                  Block lines
+                  <select id="blockVisualMode">
+                    <option value="strips">Path-aligned strips</option>
+                    <option value="headstones">Thin path guide lines</option>
+                  </select>
+                </label>
+                <label>
+                  Width
+                  <input id="blockWidth" type="range" min="12" max="280" value="116" />
+                </label>
+                <label>
+                  Height
+                  <input id="blockHeight" type="range" min="18" max="280" value="127" />
+                </label>
+                <label>
+                  Rotate
+                  <input id="blockRotate" type="range" min="-180" max="180" value="39" />
+                </label>
+                <div class="cutout-controls collapsed">
+                  <button class="section-toggle mini-toggle" id="toggleCutoutControls" type="button" aria-expanded="false">
+                    <strong>Cut-outs</strong>
+                    <span>Show cut-outs</span>
+                  </button>
+                  <div class="cutout-controls-body">
+                    <label>
+                      Cut-out X
+                      <input id="cutoutX" type="range" min="-10" max="90" value="-1" />
+                    </label>
+                    <label>
+                      Cut-out Y
+                      <input id="cutoutY" type="range" min="-10" max="90" value="-2" />
+                    </label>
+                    <label>
+                      Cut-out width
+                      <input id="cutoutWidth" type="range" min="0" max="70" value="14" />
+                    </label>
+                    <label>
+                      Cut-out height
+                      <input id="cutoutHeight" type="range" min="0" max="70" value="19" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="block-values">
+                <span id="blockPositionValue">x 76.7%, y 25.1%</span>
+                <span id="blockSizeValue">116 x 127, 39deg</span>
+                <span id="blockCutValue">cut-out x -1, y -2, 14 x 19</span>
+              </div>
+              <div class="row-summary">
+                <strong>Block A rows</strong>
+                <span>9 physical strips</span>
+                <span>18 logical rows</span>
+                <span>Rows 1-2: 26 plots each</span>
+                <span>Rows 3-18: 32 plots each</span>
+                <span>Estimated total: 564 plots</span>
+              </div>
+              <button class="secondary-button full" id="resetBlockA" type="button">Reset selected block</button>
+            </div>
+            <div class="block-editor entrance-editor" aria-label="Main entrance controls">
+              <strong>Entrance preview</strong>
+              <label>
+                QR entrance
+                <select id="entranceSelect"></select>
+              </label>
+              <div class="block-values">
+                <span id="userMarkerValue">x 75.8%, y 21.7%</span>
+                <span id="entranceQrValue">QR: main entrance</span>
+              </div>
+              <button class="secondary-button full" id="resetUserMarker" type="button">
+                Reset entrance marker
+              </button>
+            </div>
+            <div class="block-editor row-count-editor" aria-label="Row plot counts">
+              <button class="section-toggle" id="toggleRowCounts" type="button" aria-expanded="true">
+                <strong>Row plot counts</strong>
+                <span>Hide rows</span>
+              </button>
+              <p class="admin-help">Set how many plots exist in each row for the selected block.</p>
+              <div class="row-count-list" id="rowCountList"></div>
+            </div>
+            <div class="block-editor strip-row-editor collapsed" aria-label="Advanced strip row controls">
+              <button class="section-toggle" id="toggleStripRows" type="button" aria-expanded="false">
+                <strong>Advanced strip rows</strong>
+                <span>Show strips</span>
+              </button>
+              <p class="admin-help">Override row counts per strip when an older area is inconsistent.</p>
+              <div class="strip-row-list" id="stripRowList"></div>
+            </div>
+            <div class="block-editor calibration-editor" aria-label="Plot calibration controls">
+              <strong>Plot calibration anchors</strong>
+              <div class="block-values">
+                <span id="activeCalibrationValue">No active plot calibration</span>
+              </div>
+              <button class="secondary-button full" id="startCalibration" type="button">
+                Start Cal
+              </button>
+              <button class="secondary-button full" id="clearCalibration" type="button">
+                Save Calibration
+              </button>
+              <p class="admin-help">
+                Calibrate fixed plots, not people. Click an orange plot anchor, then click the exact plot
+                position inside the selected block.
+              </p>
+              <div id="calibrationValues" class="calibration-values"></div>
+            </div>
+            <div class="block-editor resident-editor" aria-label="Resident controls">
+              <strong>Add resident</strong>
+              <label>
+                Full name
+                <input id="residentFullName" type="text" placeholder="Full name" />
+              </label>
+              <label>
+                Block
+                <select id="residentBlock"></select>
+              </label>
+              <label>
+                Row
+                <input id="residentRow" type="number" min="1" max="80" value="1" />
+              </label>
+              <label>
+                Plot
+                <input id="residentPlot" type="number" min="1" max="200" value="1" />
+              </label>
+              <label>
+                Plot spaces
+                <select id="residentPlotSpaces">
+                  <option value="1">1 plot space</option>
+                  <option value="2">2 plot spaces</option>
+                  <option value="3">3 plot spaces</option>
+                  <option value="4">4 plot spaces</option>
+                  <option value="5">5 plot spaces</option>
+                  <option value="6">6 plot spaces</option>
+                </select>
+              </label>
+              <button class="secondary-button compact" id="useResidentSuggestion" type="button">Use suggested opening</button>
+              <label>
+                DOB
+                <input id="residentDob" type="date" />
+              </label>
+              <label>
+                DOD
+                <input id="residentDod" type="date" />
+              </label>
+              <button class="secondary-button full" id="addResident" type="button">Add resident</button>
+              <div class="block-values">
+                <span id="residentStatus">Adds to the current selected block for testing.</span>
+              </div>
+            </div>
+            <div class="block-editor resident-edit-editor" aria-label="Edit resident controls">
+              <strong>Edit resident</strong>
+              <label>
+                Resident
+                <select id="editResidentSelect"></select>
+              </label>
+              <label>
+                Full name
+                <input id="editResidentFullName" type="text" placeholder="Full name" />
+              </label>
+              <label>
+                Block
+                <select id="editResidentBlock"></select>
+              </label>
+              <label>
+                Row
+                <input id="editResidentRow" type="number" min="1" max="80" value="1" />
+              </label>
+              <label>
+                Plot
+                <input id="editResidentPlot" type="number" min="1" max="200" value="1" />
+              </label>
+              <label>
+                Plot spaces
+                <select id="editResidentPlotSpaces">
+                  <option value="1">1 plot space</option>
+                  <option value="2">2 plot spaces</option>
+                  <option value="3">3 plot spaces</option>
+                  <option value="4">4 plot spaces</option>
+                  <option value="5">5 plot spaces</option>
+                  <option value="6">6 plot spaces</option>
+                </select>
+              </label>
+              <button class="secondary-button compact" id="useEditResidentSuggestion" type="button">Use suggested opening</button>
+              <label>
+                DOB
+                <input id="editResidentDob" type="date" />
+              </label>
+              <label>
+                DOD
+                <input id="editResidentDod" type="date" />
+              </label>
+              <button class="secondary-button full" id="saveResidentEdit" type="button">Save resident</button>
+              <div class="block-values">
+                <span id="residentEditStatus">Select a resident to edit their test record.</span>
+              </div>
+            </div>
+            <div class="block-editor map-editor" aria-label="Map controls">
+              <strong>Map orientation</strong>
+              <label>
+                Facing rotation
+                <input id="headingRotation" type="range" min="-180" max="180" value="-33" />
+              </label>
+              <div class="block-values">
+                <span id="headingValue">heading -33deg</span>
+              </div>
+            </div>
+            <ul>
+              <li>Drag Block A directly on the map.</li>
+              <li>Drag the blue user marker to calibrate the main entrance / QR scan point.</li>
+              <li>Use the sliders to resize and rotate it until it sits inside the red dotted paths.</li>
+              <li>These values are temporary calibration numbers for the prototype.</li>
+            </ul>
+            <div class="block-editor cemetery-add-panel" aria-label="Add cemetery">
+              <strong>Add cemetery</strong>
+              <p class="admin-help">
+                Test mode is open. In production this becomes a locked Contact Provider request.
+              </p>
+              <button class="secondary-button full" id="addCemetery" type="button">Add cemetery</button>
+              <div class="block-values">
+                <span id="addCemeteryStatus">Council accounts can manage more than one cemetery.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mapping-board" aria-labelledby="mapping-title">
+        <div>
+          <p class="project-label">Mapping scaffold</p>
+          <h2 id="mapping-title">How this becomes a real cemetery map</h2>
+        </div>
+        <div class="mapping-grid">
+          <article>
+            <span>01</span>
+            <h3>Base site</h3>
+            <p>The current prototype is local and stable; production can load OSM/MapLibre tiles.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Sections</h3>
+            <p>A/B/C are drawn as our own overlay polygons, ready to refine with real measurements.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Records</h3>
+            <p>Sample public records show the shape of the searchable grave data model.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Routes</h3>
+            <p>A draft walking graph models entrances, junctions, section entries, and grave nodes.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

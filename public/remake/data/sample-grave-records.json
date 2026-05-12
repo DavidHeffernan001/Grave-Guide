@@ -1,0 +1,62 @@
+[
+  {
+    "id": "SL-SLOL-A-0001",
+    "displayName": "Andrew Hosie",
+    "surname": "Hosie",
+    "forenames": ["Andrew", "Ann"],
+    "cemetery": "Sligo Town Cemetery",
+    "section": "Block A",
+    "graveReference": "A-row-pending",
+    "source": "Historic Graves public listing",
+    "locationStatus": "block-known-row-pending",
+    "mapPoint": {
+      "longitude": -8.46428,
+      "latitude": 54.25979
+    }
+  },
+  {
+    "id": "SL-SLOL-A-0002",
+    "displayName": "Mary Jane Robertson",
+    "surname": "Robertson",
+    "forenames": ["Thomas C", "Margaret", "Edward Thomas", "Mary Jane"],
+    "cemetery": "Sligo Town Cemetery",
+    "section": "Block B",
+    "graveReference": "B-row-pending",
+    "source": "Historic Graves public listing",
+    "locationStatus": "block-known-row-pending",
+    "mapPoint": {
+      "longitude": -8.46342,
+      "latitude": 54.25974
+    }
+  },
+  {
+    "id": "SL-SLOL-A-0016",
+    "displayName": "Ellen Poe",
+    "surname": "Poe",
+    "forenames": ["Ellen", "Robert Percy"],
+    "cemetery": "Sligo Town Cemetery",
+    "section": "Block C",
+    "graveReference": "C-row-pending",
+    "source": "Historic Graves public listing",
+    "locationStatus": "block-known-row-pending",
+    "mapPoint": {
+      "longitude": -8.46382,
+      "latitude": 54.25918
+    }
+  },
+  {
+    "id": "CONTROL-001",
+    "displayName": "Survey control point grave",
+    "surname": "Control",
+    "forenames": ["Survey"],
+    "cemetery": "Sligo Town Cemetery",
+    "section": "Block C",
+    "graveReference": "To be confirmed on site",
+    "source": "field-survey-placeholder",
+    "locationStatus": "draft-control-point",
+    "mapPoint": {
+      "longitude": -8.46548,
+      "latitude": 54.25943
+    }
+  }
+]

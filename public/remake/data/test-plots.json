@@ -1,0 +1,394 @@
+{
+  "cemetery": {
+    "id": "sligo-town-cemetery",
+    "name": "Sligo Town Cemetery"
+  },
+  "plots": [
+    {
+      "id": "A-01-001",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "left-facing-in",
+      "plotNumber": 1,
+      "positionInBlock": { "xPercent": 18, "yPercent": 12 },
+      "burials": [
+        {
+          "id": "burial-001",
+          "firstName": "Andrew",
+          "lastName": "Hosie",
+          "dateOfBirth": "1848-03-12",
+          "dateOfDeath": "1917-09-04"
+        }
+      ]
+    },
+    {
+      "id": "A-01-002",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "left-facing-in",
+      "plotNumber": 2,
+      "positionInBlock": { "xPercent": 28, "yPercent": 12 },
+      "burials": [
+        {
+          "id": "burial-002",
+          "firstName": "Margaret",
+          "lastName": "Keane",
+          "dateOfBirth": "1861-11-02",
+          "dateOfDeath": "1934-01-18"
+        }
+      ]
+    },
+    {
+      "id": "A-01-003",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "left-facing-in",
+      "plotNumber": 3,
+      "positionInBlock": { "xPercent": 8, "yPercent": 23 },
+      "burials": [
+        {
+          "id": "burial-003",
+          "firstName": "Patrick",
+          "lastName": "Walsh",
+          "dateOfBirth": "1874-06-21",
+          "dateOfDeath": "1942-10-29"
+        }
+      ]
+    },
+    {
+      "id": "A-02-001",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "right-facing-in",
+      "plotNumber": 1,
+      "positionInBlock": { "xPercent": 6, "yPercent": 18 },
+      "burials": [
+        {
+          "id": "burial-004",
+          "firstName": "Mary Jane",
+          "lastName": "Robertson",
+          "dateOfBirth": "1880-02-14",
+          "dateOfDeath": "1956-05-03"
+        }
+      ]
+    },
+    {
+      "id": "A-02-002",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "right-facing-in",
+      "plotNumber": 2,
+      "positionInBlock": { "xPercent": 14, "yPercent": 18 },
+      "burials": [
+        {
+          "id": "burial-005",
+          "firstName": "Thomas",
+          "lastName": "Gallagher",
+          "dateOfBirth": "1893-08-09",
+          "dateOfDeath": "1967-12-11"
+        }
+      ]
+    },
+    {
+      "id": "A-03-004",
+      "blockId": "A",
+      "stripId": "A-S02",
+      "side": "left-facing-in",
+      "plotNumber": 4,
+      "positionInBlock": { "xPercent": 30, "yPercent": 29 },
+      "burials": [
+        {
+          "id": "burial-006",
+          "firstName": "Ellen",
+          "lastName": "Poe",
+          "dateOfBirth": "1901-04-27",
+          "dateOfDeath": "1979-07-15"
+        }
+      ]
+    },
+    {
+      "id": "A-04-006",
+      "blockId": "A",
+      "stripId": "A-S02",
+      "side": "right-facing-in",
+      "plotNumber": 6,
+      "positionInBlock": { "xPercent": 46, "yPercent": 40 },
+      "burials": [
+        {
+          "id": "burial-007",
+          "firstName": "Bridget",
+          "lastName": "McLoughlin",
+          "dateOfBirth": "1912-01-05",
+          "dateOfDeath": "1988-03-22"
+        }
+      ]
+    },
+    {
+      "id": "A-05-010",
+      "blockId": "A",
+      "stripId": "A-S03",
+      "side": "left-facing-in",
+      "plotNumber": 10,
+      "positionInBlock": { "xPercent": 78, "yPercent": 51 },
+      "burials": [
+        {
+          "id": "burial-008",
+          "firstName": "John",
+          "lastName": "Brennan",
+          "dateOfBirth": "1920-09-18",
+          "dateOfDeath": "1994-06-02"
+        }
+      ]
+    },
+    {
+      "id": "A-07-003",
+      "blockId": "A",
+      "stripId": "A-S04",
+      "side": "left-facing-in",
+      "plotNumber": 3,
+      "positionInBlock": { "xPercent": 22, "yPercent": 73 },
+      "burials": [
+        {
+          "id": "burial-009",
+          "firstName": "Kathleen",
+          "lastName": "O'Connor",
+          "dateOfBirth": "1931-12-03",
+          "dateOfDeath": "2008-11-17"
+        }
+      ]
+    },
+    {
+      "id": "A-09-014",
+      "blockId": "A",
+      "stripId": "A-S05",
+      "side": "right-facing-in",
+      "plotNumber": 14,
+      "positionInBlock": { "xPercent": 88, "yPercent": 94 },
+      "burials": [
+        {
+          "id": "burial-010",
+          "firstName": "Michael",
+          "lastName": "Scanlon",
+          "dateOfBirth": "1944-05-30",
+          "dateOfDeath": "2019-02-09"
+        }
+      ]
+    },
+    {
+      "id": "A-10-009",
+      "blockId": "A",
+      "stripId": "A-S05",
+      "side": "right-facing-in",
+      "plotNumber": 9,
+      "positionInBlock": { "xPercent": 58, "yPercent": 94 },
+      "calibratedPositionInBlock": { "x": 48.7, "y": 28.9 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-011",
+          "firstName": "Nora",
+          "lastName": "Connolly",
+          "dateOfBirth": "1938-10-12",
+          "dateOfDeath": "2022-04-21"
+        }
+      ]
+    },
+    {
+      "id": "A-04-021",
+      "blockId": "A",
+      "stripId": "A-S02",
+      "side": "right-facing-in",
+      "plotNumber": 21,
+      "positionInBlock": { "xPercent": 62, "yPercent": 22 },
+      "calibratedPositionInBlock": { "x": 17.3, "y": 71.9 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-012",
+          "firstName": "Seamus",
+          "lastName": "Doyle",
+          "dateOfBirth": "1941-07-08",
+          "dateOfDeath": "2011-09-13"
+        }
+      ]
+    },
+    {
+      "id": "A-08-006",
+      "blockId": "A",
+      "stripId": "A-S04",
+      "side": "right-facing-in",
+      "plotNumber": 6,
+      "positionInBlock": { "xPercent": 22, "yPercent": 43 },
+      "calibratedPositionInBlock": { "x": 37.8, "y": 12.9 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-013",
+          "firstName": "Anne",
+          "lastName": "Morrison",
+          "dateOfBirth": "1952-03-26",
+          "dateOfDeath": "2020-08-30"
+        }
+      ]
+    },
+    {
+      "id": "A-12-028",
+      "blockId": "A",
+      "stripId": "A-S06",
+      "side": "right-facing-in",
+      "plotNumber": 28,
+      "positionInBlock": { "xPercent": 82, "yPercent": 64 },
+      "calibratedPositionInBlock": { "x": 61.1, "y": 87.3 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-014",
+          "firstName": "Liam",
+          "lastName": "Kelly",
+          "dateOfBirth": "1936-01-17",
+          "dateOfDeath": "2005-05-12"
+        }
+      ]
+    },
+    {
+      "id": "A-15-013",
+      "blockId": "A",
+      "stripId": "A-S08",
+      "side": "left-facing-in",
+      "plotNumber": 13,
+      "positionInBlock": { "xPercent": 40, "yPercent": 79 },
+      "burials": [
+        {
+          "id": "burial-015",
+          "firstName": "Rose",
+          "lastName": "Flanagan",
+          "dateOfBirth": "1928-11-19",
+          "dateOfDeath": "1999-12-01"
+        }
+      ]
+    },
+    {
+      "id": "A-17-030",
+      "blockId": "A",
+      "stripId": "A-S09",
+      "side": "left-facing-in",
+      "plotNumber": 30,
+      "positionInBlock": { "xPercent": 88, "yPercent": 90 },
+      "burials": [
+        {
+          "id": "burial-016",
+          "firstName": "Teresa",
+          "lastName": "Henry",
+          "dateOfBirth": "1949-06-04",
+          "dateOfDeath": "2017-10-25"
+        }
+      ]
+    },
+    {
+      "id": "A-09-001",
+      "blockId": "A",
+      "stripId": "A-S05",
+      "side": "left-facing-in",
+      "plotNumber": 1,
+      "positionInBlock": { "xPercent": 53, "yPercent": 4 },
+      "burials": [
+        {
+          "id": "burial-017",
+          "firstName": "Noel",
+          "lastName": "Brennan",
+          "dateOfBirth": "1947-02-18",
+          "dateOfDeath": "2016-11-07"
+        }
+      ]
+    },
+    {
+      "id": "A-05-032",
+      "blockId": "A",
+      "stripId": "A-S03",
+      "side": "left-facing-in",
+      "plotNumber": 32,
+      "positionInBlock": { "xPercent": 31, "yPercent": 96 },
+      "burials": [
+        {
+          "id": "burial-018",
+          "firstName": "Aaron",
+          "lastName": "Moran",
+          "dateOfBirth": "1955-09-03",
+          "dateOfDeath": "2021-04-14"
+        }
+      ]
+    },
+    {
+      "id": "B-01-001",
+      "blockId": "B",
+      "stripId": "B-S01",
+      "side": "left-facing-in",
+      "plotNumber": 1,
+      "positionInBlock": { "xPercent": 8, "yPercent": 8 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-019",
+          "firstName": "Eileen",
+          "lastName": "Ward",
+          "dateOfBirth": "1939-05-14",
+          "dateOfDeath": "2012-02-10"
+        }
+      ]
+    },
+    {
+      "id": "B-08-012",
+      "blockId": "B",
+      "stripId": "B-S04",
+      "side": "right-facing-in",
+      "plotNumber": 12,
+      "positionInBlock": { "xPercent": 35, "yPercent": 38 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-020",
+          "firstName": "Martin",
+          "lastName": "Sweeney",
+          "dateOfBirth": "1946-09-22",
+          "dateOfDeath": "2018-12-04"
+        }
+      ]
+    },
+    {
+      "id": "B-14-024",
+      "blockId": "B",
+      "stripId": "B-S07",
+      "side": "right-facing-in",
+      "plotNumber": 24,
+      "positionInBlock": { "xPercent": 68, "yPercent": 72 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-021",
+          "firstName": "Grace",
+          "lastName": "Nolan",
+          "dateOfBirth": "1951-04-03",
+          "dateOfDeath": "2020-06-19"
+        }
+      ]
+    },
+    {
+      "id": "B-20-032",
+      "blockId": "B",
+      "stripId": "B-S10",
+      "side": "right-facing-in",
+      "plotNumber": 32,
+      "positionInBlock": { "xPercent": 94, "yPercent": 94 },
+      "calibrationEnabled": true,
+      "burials": [
+        {
+          "id": "burial-022",
+          "firstName": "Peter",
+          "lastName": "Burns",
+          "dateOfBirth": "1934-01-28",
+          "dateOfDeath": "2007-08-15"
+        }
+      ]
+    }
+  ]
+}

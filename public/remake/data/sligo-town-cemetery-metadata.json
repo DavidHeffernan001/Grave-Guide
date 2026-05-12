@@ -1,0 +1,66 @@
+{
+  "id": "sligo-town-cemetery",
+  "name": "Sligo Town Cemetery",
+  "alsoKnownAs": ["Sligo Cemetery", "Sligo Old Cemetery"],
+  "trialStatus": "draft-public-data-scaffold",
+  "location": {
+    "address": "Cemetery Road / Pearse Road, Commons, Sligo, County Sligo, Ireland",
+    "publicCoordinate": {
+      "latitude": 54.259421,
+      "longitude": -8.464344,
+      "source": "GENUKI Sligo Cemetery page"
+    },
+    "historicGravesCoordinate": {
+      "latitude": 54.258494,
+      "longitude": -8.467219,
+      "source": "Historic Graves Sligo Old Cemetery page",
+      "note": "Use as a reference for the old cemetery survey area; verify against the exact trial entrance and boundary."
+    }
+  },
+  "knownStructure": {
+    "sections": ["Block A", "Block B", "Block C", "Old Section", "Middle Section", "New Section"],
+    "layoutNotes": [
+      "Public heritage record describes the cemetery as laid out on a grid pattern.",
+      "Entrance is described from the public road to the west.",
+      "Ground falls from upper cemetery to lower cemetery.",
+      "Paths are described as bitmac paths with grassed areas and shrubs between graves.",
+      "User-supplied annotated screenshot identifies a main entrance marker at the north-west edge and draft grave blocks A, B and C in the north-east part of the cemetery."
+    ]
+  },
+  "sources": [
+    {
+      "title": "GENUKI: Sligo Cemetery, Sligo",
+      "url": "https://www.genuki.org.uk/big/irl/SLI/SligoStJohns/SligoTownCem",
+      "usedFor": ["public coordinate", "cemetery road location"]
+    },
+    {
+      "title": "Buildings of Ireland: Sligo Cemetery, Pearse Road, Cemetery Road, Commons",
+      "url": "https://www.buildingsofireland.ie/buildings-search/building/32324001/sligo-cemetery-pearse-road-cemetery-road-commons-sligo-sligo",
+      "usedFor": ["layout description", "entrance context", "historic description"]
+    },
+    {
+      "title": "Historic Graves: Sligo Old Cemetery",
+      "url": "https://historicgraves.com/graveyard/sligo-old-cemetery/sl-slol",
+      "usedFor": ["old cemetery survey context", "sample grave identifiers", "sample public names"]
+    },
+    {
+      "title": "IGP Archives: Sligo Town Cemetery",
+      "url": "https://www.igp-web.com/IGPArchives/ire/sligo/photos/tombstones/1sligocem/",
+      "usedFor": ["Old, Middle and New section naming"]
+    },
+    {
+      "title": "User annotated screenshot of Sligo Cemetery",
+      "url": "local conversation image",
+      "usedFor": ["draft entrance placement", "visible path interpretation", "draft Block A/B/C placement"],
+      "note": "Treat as a visual tracing reference, not a measured survey."
+    }
+  ],
+  "nextDataNeeded": [
+    "Council burial register export with grave reference, section, row, plot, burial names and dates.",
+    "Exact cemetery boundary polygon.",
+    "Exact entrance point or points.",
+    "Surveyed path centre lines.",
+    "Surveyed section polygons.",
+    "At least 10 control-point graves with known grave references and GPS/photo confirmation."
+  ]
+}

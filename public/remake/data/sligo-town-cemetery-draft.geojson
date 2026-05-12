@@ -1,0 +1,204 @@
+{
+  "type": "FeatureCollection",
+  "name": "sligo-town-cemetery-draft",
+  "metadata": {
+    "status": "draft scaffold",
+    "warning": "These features are approximate placeholders traced from public references and a user-annotated screenshot for product development only. Do not use for live grave navigation until surveyed and verified on site.",
+    "coordinateReference": "WGS84",
+    "center": [-8.464344, 54.259421]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "cemetery-centre-public",
+      "properties": {
+        "kind": "site-centre",
+        "name": "Sligo Town Cemetery",
+        "source": "GENUKI public coordinate",
+        "confidence": "public-reference"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.464344, 54.259421]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "entrance-west-draft",
+      "properties": {
+        "kind": "entrance",
+        "name": "Main entrance",
+        "confidence": "screenshot-derived-needs-survey",
+        "note": "User screenshot marks this as the blue-dot main entrance at the north-west edge of the cemetery."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.46494, 54.26008]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "cemetery-boundary-screenshot-draft",
+      "properties": {
+        "kind": "boundary",
+        "name": "Sligo Cemetery visible boundary",
+        "confidence": "screenshot-derived-needs-survey"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-8.46718, 54.25802],
+            [-8.46618, 54.25876],
+            [-8.46522, 54.25942],
+            [-8.46494, 54.26008],
+            [-8.46346, 54.26018],
+            [-8.46236, 54.25976],
+            [-8.46304, 54.25894],
+            [-8.4641, 54.25824],
+            [-8.46542, 54.25774],
+            [-8.46718, 54.25802]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "old-section-draft",
+      "properties": {
+        "kind": "section",
+        "name": "Block A",
+        "confidence": "screenshot-derived-needs-survey",
+        "note": "User annotated this north-centre block as A."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-8.46474, 54.26003],
+            [-8.46398, 54.26009],
+            [-8.46413, 54.25955],
+            [-8.46488, 54.2595],
+            [-8.46474, 54.26003]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "middle-section-draft",
+      "properties": {
+        "kind": "section",
+        "name": "Block B",
+        "confidence": "screenshot-derived-needs-survey",
+        "note": "User annotated this north-east block as B."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-8.46383, 54.26005],
+            [-8.46282, 54.25998],
+            [-8.4631, 54.25942],
+            [-8.46402, 54.25955],
+            [-8.46383, 54.26005]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "new-section-draft",
+      "properties": {
+        "kind": "section",
+        "name": "Block C",
+        "confidence": "screenshot-derived-needs-survey",
+        "note": "User annotated this central/east block as C."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-8.46402, 54.25952],
+            [-8.4631, 54.25939],
+            [-8.46345, 54.25888],
+            [-8.46428, 54.25902],
+            [-8.46402, 54.25952]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "main-path-draft",
+      "properties": {
+        "kind": "path",
+        "name": "Main diagonal path",
+        "surface": "bitmac",
+        "confidence": "screenshot-derived-needs-survey"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.467, 54.25814],
+          [-8.46618, 54.25876],
+          [-8.46535, 54.25922],
+          [-8.46462, 54.25962],
+          [-8.46494, 54.26008]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "cross-path-old-middle-draft",
+      "properties": {
+        "kind": "path",
+        "name": "Block A/B connector",
+        "confidence": "screenshot-derived-needs-survey"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.46474, 54.26003],
+          [-8.46398, 54.25955],
+          [-8.46345, 54.25888]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "upper-cross-path-draft",
+      "properties": {
+        "kind": "path",
+        "name": "Upper section path",
+        "confidence": "screenshot-derived-needs-survey"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.46494, 54.26008],
+          [-8.46383, 54.26005],
+          [-8.46282, 54.25998]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "lower-cross-path-draft",
+      "properties": {
+        "kind": "path",
+        "name": "Lower section path",
+        "confidence": "screenshot-derived-needs-survey"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.46658, 54.25838],
+          [-8.46535, 54.25922],
+          [-8.46428, 54.25902],
+          [-8.46345, 54.25888]
+        ]
+      }
+    }
+  ]
+}

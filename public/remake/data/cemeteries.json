@@ -1,0 +1,61 @@
+{
+  "activeCemeteryId": "strandhill-rd-cemetery",
+  "cemeteries": [
+    {
+      "id": "sligo-town-cemetery",
+      "name": "Sligo Town Cemetery",
+      "slug": "sligo-town-cemetery",
+      "town": "Sligo",
+      "county": "Sligo",
+      "country": "Ireland",
+      "managingOrganisation": {
+        "id": "sligo-county-council",
+        "name": "Sligo County Council",
+        "type": "council"
+      },
+      "map": {
+        "provider": "openstreetmap",
+        "layer": "humanitarian",
+        "bbox": [
+          -8.4666,
+          54.2587,
+          -8.4628,
+          54.2604
+        ],
+        "centre": {
+          "longitude": -8.4647,
+          "latitude": 54.25955
+        }
+      },
+      "plotDataUrl": "data/plots.json",
+      "burialDataUrl": "data/burials.json"
+    },
+    {
+      "id": "strandhill-rd-cemetery",
+      "name": "Strandhill Rd Cemetery",
+      "slug": "strandhill-rd-cemetery",
+      "town": "",
+      "county": "",
+      "country": "Ireland",
+      "managingOrganisation": {
+        "id": "sligo-county-council",
+        "name": "Sligo County Council",
+        "type": "council"
+      },
+      "map": {
+        "provider": "openstreetmap",
+        "layer": "humanitarian",
+        "bbox": [
+          -8.555937,
+          54.272407,
+          -8.550537,
+          54.274807
+        ],
+        "centre": {
+          "longitude": -8.553237,
+          "latitude": 54.273607
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "cemetery": {
+    "id": "strandhill-rd-cemetery",
+    "name": "Strandhill Rd Cemetery",
+    "slug": "strandhill-rd-cemetery",
+    "town": "",
+    "county": "",
+    "country": "Ireland",
+    "managingOrganisation": {
+      "id": "sligo-county-council",
+      "name": "Sligo County Council",
+      "type": "council"
+    },
+    "map": {
+      "provider": "openstreetmap",
+      "layer": "humanitarian",
+      "bbox": [
+        -8.555937,
+        54.272407,
+        -8.550537,
+        54.274807
+      ],
+      "centre": {
+        "longitude": -8.553237,
+        "latitude": 54.273607
+      }
+    }
+  },
+  "plots": [
+    {
+      "id": "A-CAL-01",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "left-facing-in",
+      "plotNumber": 1,
+      "positionInBlock": {
+        "xPercent": 8,
+        "yPercent": 8
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-02",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "left-facing-in",
+      "plotNumber": 32,
+      "positionInBlock": {
+        "xPercent": 8,
+        "yPercent": 92
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-03",
+      "blockId": "A",
+      "stripId": "A-S05",
+      "side": "row-2",
+      "plotNumber": 1,
+      "positionInBlock": {
+        "xPercent": 92,
+        "yPercent": 8
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-04",
+      "blockId": "A",
+      "stripId": "A-S02",
+      "side": "left-facing-in",
+      "plotNumber": 12,
+      "positionInBlock": {
+        "xPercent": 29,
+        "yPercent": 37.4
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-05",
+      "blockId": "A",
+      "stripId": "A-S03",
+      "side": "row-2",
+      "plotNumber": 17,
+      "positionInBlock": {
+        "xPercent": 50,
+        "yPercent": 50
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-06",
+      "blockId": "A",
+      "stripId": "A-S04",
+      "side": "row-2",
+      "plotNumber": 21,
+      "positionInBlock": {
+        "xPercent": 71,
+        "yPercent": 62.6
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-07",
+      "blockId": "A",
+      "stripId": "A-S05",
+      "side": "left-facing-in",
+      "plotNumber": 9,
+      "positionInBlock": {
+        "xPercent": 79.39999999999999,
+        "yPercent": 29
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
+    }
+  ]
+}

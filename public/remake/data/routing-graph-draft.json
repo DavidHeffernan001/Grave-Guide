@@ -1,0 +1,92 @@
+{
+  "id": "sligo-town-cemetery-routing-draft",
+  "status": "draft-needs-survey",
+  "units": "wgs84",
+  "notes": [
+    "This graph is a product scaffold only.",
+    "Coordinates are now screenshot-derived placeholders and must still be surveyed.",
+    "Each path junction should become a node; each walkable path segment should become an edge."
+  ],
+  "nodes": [
+    {
+      "id": "gate-west",
+      "label": "Main entrance",
+      "type": "entrance",
+      "coordinates": [-8.46494, 54.26008]
+    },
+    {
+      "id": "junction-main-01",
+      "label": "Upper entrance junction",
+      "type": "junction",
+      "coordinates": [-8.46462, 54.25962]
+    },
+    {
+      "id": "junction-main-02",
+      "label": "Central diagonal junction",
+      "type": "junction",
+      "coordinates": [-8.46535, 54.25922]
+    },
+    {
+      "id": "block-a-entry",
+      "label": "Block A entry",
+      "type": "section-entry",
+      "coordinates": [-8.46428, 54.25979]
+    },
+    {
+      "id": "block-c-entry",
+      "label": "Block C entry",
+      "type": "section-entry",
+      "coordinates": [-8.46382, 54.25918]
+    },
+    {
+      "id": "sample-grave-control",
+      "label": "Sample grave control point",
+      "type": "grave-control",
+      "coordinates": [-8.46382, 54.25918]
+    }
+  ],
+  "edges": [
+    {
+      "from": "gate-west",
+      "to": "junction-main-01",
+      "kind": "walkable-path",
+      "distanceMetersDraft": 55
+    },
+    {
+      "from": "junction-main-01",
+      "to": "junction-main-02",
+      "kind": "walkable-path",
+      "distanceMetersDraft": 82
+    },
+    {
+      "from": "junction-main-02",
+      "to": "block-c-entry",
+      "kind": "walkable-path",
+      "distanceMetersDraft": 65
+    },
+    {
+      "from": "junction-main-01",
+      "to": "block-a-entry",
+      "kind": "walkable-path",
+      "distanceMetersDraft": 42
+    },
+    {
+      "from": "block-c-entry",
+      "to": "sample-grave-control",
+      "kind": "section-access",
+      "distanceMetersDraft": 8
+    }
+  ],
+  "exampleRoute": {
+    "from": "gate-west",
+    "to": "sample-grave-control",
+    "nodes": ["gate-west", "junction-main-01", "junction-main-02", "block-c-entry", "sample-grave-control"],
+    "instructions": [
+      "Start at the main entrance.",
+      "Follow the diagonal path into the cemetery.",
+      "Continue past the central path junction.",
+      "Enter Block C from the diagonal path.",
+      "Use row guidance once Block C rows are counted."
+    ]
+  }
+}

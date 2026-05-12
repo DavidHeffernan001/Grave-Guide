@@ -1,0 +1,38 @@
+[
+  {
+    "id": "sligo-main-entrance",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Main Entrance",
+    "type": "qr-start-point",
+    "mapPosition": {
+      "x": 58.8,
+      "y": 16
+    },
+    "defaultHeadingDegrees": -128,
+    "qrCodeSlug": "sligo-town-cemetery-main-entrance"
+  },
+  {
+    "id": "sligo-cemetery-road-gate",
+    "cemeteryId": "sligo-town-cemetery",
+    "name": "Cemetery Road Gate",
+    "type": "qr-start-point",
+    "mapPosition": {
+      "x": 25.6,
+      "y": 36
+    },
+    "defaultHeadingDegrees": -128,
+    "qrCodeSlug": "sligo-town-cemetery-cemetery-road-gate"
+  },
+  {
+    "id": "strandhill-rd-cemetery-main-entrance",
+    "cemeteryId": "strandhill-rd-cemetery",
+    "name": "Main Entrance",
+    "type": "qr-start-point",
+    "mapPosition": {
+      "x": 59.7,
+      "y": 59.8
+    },
+    "defaultHeadingDegrees": -128,
+    "qrCodeSlug": "strandhill-rd-cemetery-main-entrance"
+  }
+]
