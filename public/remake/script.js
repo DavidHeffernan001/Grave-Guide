@@ -172,6 +172,7 @@ let cemeteryLeafletBounds = null;
 const blockStorageKey = "graveguide-sligo-block-layout";
 const adminSaveTokenKey = "graveguide-admin-save-token";
 const referenceMapWidth = 390;
+const mobileMapReference = { width: 390, height: 800 };
 const remakeUrlParams = new URLSearchParams(window.location.search);
 const requestedShell = remakeUrlParams.get("view") || remakeUrlParams.get("shell") || "demo";
 const requestedState = remakeUrlParams.get("state");
@@ -226,6 +227,8 @@ function setWorkspaceMode(mode) {
 function applyRemakeShellMode() {
   const shell = ["visitor-map", "admin-map"].includes(requestedShell) ? requestedShell : "demo";
   document.body.dataset.shell = shell;
+  mapArea.style.setProperty("--mobile-map-reference-width", `${mobileMapReference.width}px`);
+  mapArea.style.setProperty("--mobile-map-reference-height", `${mobileMapReference.height}px`);
 
   if (shell === "visitor-map") {
     setWorkspaceMode("visitor");
@@ -240,6 +243,12 @@ function applyRemakeShellMode() {
 
   if (shell === "admin-map") {
     setWorkspaceMode("admin");
+    mapZoom = Number(remakeUrlParams.get("zoom")) || 1;
+    mapPan = { x: 0, y: 0 };
+    headingUp = false;
+    renderMapPan();
+    renderHeading();
+    setMapZoom(mapZoom);
     setState(requestedState || "map");
   }
 

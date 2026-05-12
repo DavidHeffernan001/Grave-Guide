@@ -1959,7 +1959,9 @@ body[data-shell="visitor-map"] .bottom-sheet {
 }
 
 body[data-shell="admin-map"] .workspace {
-  width: min(1720px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
+  min-height: 100dvh;
+  padding: 18px 0 28px;
 }
 
 body[data-shell="admin-map"] .intro,
@@ -1973,13 +1975,19 @@ body[data-shell="admin-map"] .prototype-layout {
 }
 
 body[data-shell="admin-map"] .phone-stage {
-  grid-template-columns: minmax(560px, 1fr) minmax(330px, 430px);
+  grid-template-columns: minmax(390px, 430px) minmax(330px, 430px);
+  justify-content: center;
   align-items: start;
 }
 
 body[data-shell="admin-map"] .phone {
-  width: min(100%, 760px);
-  max-height: calc(100dvh - 48px);
+  width: min(100%, var(--mobile-map-reference-width, 390px));
+  max-width: var(--mobile-map-reference-width, 390px);
+  aspect-ratio: 390 / 800;
+}
+
+body[data-shell="admin-map"] .screen {
+  aspect-ratio: 390 / 800;
 }
 
 @media (max-width: 980px) {
