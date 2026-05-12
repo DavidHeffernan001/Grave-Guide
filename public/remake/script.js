@@ -1584,7 +1584,17 @@ function renderUserMarker() {
 
 function getResponsiveBlockScale() {
   const { width } = getMapSize();
-  return (width || referenceMapWidth) / referenceMapWidth;
+  const viewportScale = (width || referenceMapWidth) / referenceMapWidth;
+  const touchAdminScale = window.matchMedia("(pointer: coarse)").matches ? 0.64 : 1;
+  return viewportScale * touchAdminScale;
+}
+
+function getResponsiveBlockPosition(calibration) {
+  const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+  return {
+    x: calibration.x,
+    y: isTouchDevice ? calibration.y + 4.5 : calibration.y,
+  };
 }
 
 function getRenderedBlockSize(calibration) {
@@ -1602,8 +1612,9 @@ function applyBlockStyles(element, calibration, block = getBlock(element.dataset
     { x: 100, y: 100 },
     { x: 0, y: 100 },
   ];
-  element.style.setProperty("--block-a-x", `${calibration.x}%`);
-  element.style.setProperty("--block-a-y", `${calibration.y}%`);
+  const renderedPosition = getResponsiveBlockPosition(calibration);
+  element.style.setProperty("--block-a-x", `${renderedPosition.x}%`);
+  element.style.setProperty("--block-a-y", `${renderedPosition.y}%`);
   const renderedSize = getRenderedBlockSize(calibration);
   element.style.setProperty("--block-a-width", `${renderedSize.width}px`);
   element.style.setProperty("--block-a-height", `${renderedSize.height}px`);
@@ -1806,6 +1817,7 @@ function getMapLocalPoint(event) {
 function getBlockMapPoint(plotPosition, blockCalibration) {
   const { width, height } = getMapSize();
   const renderedSize = getRenderedBlockSize(blockCalibration);
+  const renderedPosition = getResponsiveBlockPosition(blockCalibration);
   const angle = (blockCalibration.rotate * Math.PI) / 180;
   const skew = Math.tan((-2 * Math.PI) / 180);
   const localX = ((plotPosition.x - 50) / 100) * renderedSize.width;
@@ -1816,8 +1828,8 @@ function getBlockMapPoint(plotPosition, blockCalibration) {
   const rotatedY = skewedX * Math.sin(angle) + skewedY * Math.cos(angle);
 
   return {
-    x: (blockCalibration.x / 100) * width + rotatedX,
-    y: (blockCalibration.y / 100) * height + rotatedY,
+    x: (renderedPosition.x / 100) * width + rotatedX,
+    y: (renderedPosition.y / 100) * height + rotatedY,
   };
 }
 
@@ -1946,10 +1958,11 @@ function getMapPoint(event) {
 function getPlotPositionFromMapPoint(event, blockId = "A") {
   const calibration = getBlockCalibration(blockId);
   const renderedSize = getRenderedBlockSize(calibration);
+  const renderedPosition = getResponsiveBlockPosition(calibration);
   const mapPoint = getMapLocalPoint(event);
   const { width, height } = getMapSize();
-  const rotatedX = mapPoint.x - (calibration.x / 100) * width;
-  const rotatedY = mapPoint.y - (calibration.y / 100) * height;
+  const rotatedX = mapPoint.x - (renderedPosition.x / 100) * width;
+  const rotatedY = mapPoint.y - (renderedPosition.y / 100) * height;
   const angle = (calibration.rotate * Math.PI) / 180;
   const skew = Math.tan((-2 * Math.PI) / 180);
   const skewedX = rotatedX * Math.cos(angle) + rotatedY * Math.sin(angle);
