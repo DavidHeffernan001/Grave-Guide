@@ -168,6 +168,7 @@ let workspaceMode = "visitor";
 let blockVisualMode = "strips";
 const blockStorageKey = "graveguide-sligo-block-layout";
 const adminSaveTokenKey = "graveguide-admin-save-token";
+const referenceMapWidth = 390;
 
 const visiblePanels = {
   welcome: ["welcome"],
@@ -1581,6 +1582,19 @@ function renderUserMarker() {
   if (plotRecords.length) renderCalibrationMarkers();
 }
 
+function getResponsiveBlockScale() {
+  const { width } = getMapSize();
+  return (width || referenceMapWidth) / referenceMapWidth;
+}
+
+function getRenderedBlockSize(calibration) {
+  const scale = getResponsiveBlockScale();
+  return {
+    width: calibration.width * scale,
+    height: calibration.height * scale,
+  };
+}
+
 function applyBlockStyles(element, calibration, block = getBlock(element.dataset.extraBlock || element.dataset.editableBlock || "A")) {
   const polygon = calibration.polygon || [
     { x: 0, y: 0 },
@@ -1590,8 +1604,9 @@ function applyBlockStyles(element, calibration, block = getBlock(element.dataset
   ];
   element.style.setProperty("--block-a-x", `${calibration.x}%`);
   element.style.setProperty("--block-a-y", `${calibration.y}%`);
-  element.style.setProperty("--block-a-width", `${calibration.width}px`);
-  element.style.setProperty("--block-a-height", `${calibration.height}px`);
+  const renderedSize = getRenderedBlockSize(calibration);
+  element.style.setProperty("--block-a-width", `${renderedSize.width}px`);
+  element.style.setProperty("--block-a-height", `${renderedSize.height}px`);
   element.style.setProperty("--block-a-rotate", `${calibration.rotate}deg`);
   element.style.setProperty("--cutout-x", `${calibration.cutout.x}%`);
   element.style.setProperty("--cutout-y", `${calibration.cutout.y}%`);
@@ -1790,10 +1805,11 @@ function getMapLocalPoint(event) {
 
 function getBlockMapPoint(plotPosition, blockCalibration) {
   const { width, height } = getMapSize();
+  const renderedSize = getRenderedBlockSize(blockCalibration);
   const angle = (blockCalibration.rotate * Math.PI) / 180;
   const skew = Math.tan((-2 * Math.PI) / 180);
-  const localX = ((plotPosition.x - 50) / 100) * blockCalibration.width;
-  const localY = ((plotPosition.y - 50) / 100) * blockCalibration.height;
+  const localX = ((plotPosition.x - 50) / 100) * renderedSize.width;
+  const localY = ((plotPosition.y - 50) / 100) * renderedSize.height;
   const skewedX = localX;
   const skewedY = localY + localX * skew;
   const rotatedX = skewedX * Math.cos(angle) - skewedY * Math.sin(angle);
@@ -1929,6 +1945,7 @@ function getMapPoint(event) {
 
 function getPlotPositionFromMapPoint(event, blockId = "A") {
   const calibration = getBlockCalibration(blockId);
+  const renderedSize = getRenderedBlockSize(calibration);
   const mapPoint = getMapLocalPoint(event);
   const { width, height } = getMapSize();
   const rotatedX = mapPoint.x - (calibration.x / 100) * width;
@@ -1941,8 +1958,8 @@ function getPlotPositionFromMapPoint(event, blockId = "A") {
   const localY = skewedY - localX * skew;
 
   return {
-    x: Math.min(100, Math.max(0, 50 + (localX / calibration.width) * 100)),
-    y: Math.min(100, Math.max(0, 50 + (localY / calibration.height) * 100)),
+    x: Math.min(100, Math.max(0, 50 + (localX / renderedSize.width) * 100)),
+    y: Math.min(100, Math.max(0, 50 + (localY / renderedSize.height) * 100)),
   };
 }
 
@@ -1983,8 +2000,9 @@ function updateDraggedBlock(event) {
     calibration.x = Math.min(125, Math.max(-25, dragMode.initial.x + dx));
     calibration.y = Math.min(125, Math.max(-25, dragMode.initial.y + dy));
   } else {
-    const widthScale = mapTransform.getBoundingClientRect().width / 100;
-    const heightScale = mapTransform.getBoundingClientRect().height / 100;
+    const scale = getResponsiveBlockScale();
+    const widthScale = mapTransform.getBoundingClientRect().width / 100 / scale;
+    const heightScale = mapTransform.getBoundingClientRect().height / 100 / scale;
     calibration.width = Math.min(280, Math.max(12, dragMode.initial.width + dx * widthScale));
     calibration.height = Math.min(280, Math.max(18, dragMode.initial.height + dy * heightScale));
   }
