@@ -316,7 +316,7 @@ h1 {
   cursor: default;
 }
 
-.osm-map iframe {
+.leaflet-remake-map {
   position: absolute;
   inset: -180px -140px;
   width: calc(100% + 280px);
@@ -337,8 +337,20 @@ h1 {
   background: #eef2ef;
 }
 
-.osm-map iframe + .osm-loading {
+.leaflet-remake-map + .osm-loading {
   z-index: -1;
+}
+
+.leaflet-remake-map .leaflet-container,
+.leaflet-remake-map.leaflet-container {
+  background: #eef2ef;
+  font-family: inherit;
+  height: 100%;
+  width: 100%;
+}
+
+.leaflet-remake-map .leaflet-control-container {
+  display: none;
 }
 
 .map-overlay-note {

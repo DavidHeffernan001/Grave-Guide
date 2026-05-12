@@ -24,7 +24,7 @@ const entranceCountValue = document.querySelector("#entranceCountValue");
 const recordCountValue = document.querySelector("#recordCountValue");
 const mapArea = document.querySelector(".osm-map");
 const mapTransform = document.querySelector("[data-map-transform]");
-const cemeteryMapFrame = document.querySelector("#cemeteryMapFrame");
+const cemeteryLeafletMap = document.querySelector("#cemeteryLeafletMap");
 const mapOverlayNote = document.querySelector(".map-overlay-note");
 const allowLocationButton = document.querySelector("#allowLocation");
 const locateButton = document.querySelector(".locate-button");
@@ -166,6 +166,8 @@ let activeCalibrationBlockId = null;
 let activeCemetery = null;
 let workspaceMode = "visitor";
 let blockVisualMode = "strips";
+let cemeteryLeaflet = null;
+let cemeteryTileLayer = null;
 const blockStorageKey = "graveguide-sligo-block-layout";
 const adminSaveTokenKey = "graveguide-admin-save-token";
 const referenceMapWidth = 390;
@@ -950,11 +952,43 @@ function getCemeteryMapBounds(cemetery) {
 }
 
 function renderCemeteryMapFrame() {
-  if (!activeCemetery || !cemeteryMapFrame) return;
+  if (!activeCemetery || !cemeteryLeafletMap || !window.L) return;
   const [west, south, east, north] = getCemeteryMapBounds(activeCemetery);
   const layer = activeCemetery.map?.layer === "standard" ? "mapnik" : "hot";
-  cemeteryMapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${west}%2C${south}%2C${east}%2C${north}&layer=${layer}`;
-  cemeteryMapFrame.title = `OpenStreetMap - ${activeCemetery.name}`;
+  const tileUrl =
+    layer === "mapnik"
+      ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      : "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
+
+  if (!cemeteryLeaflet) {
+    cemeteryLeaflet = window.L.map(cemeteryLeafletMap, {
+      attributionControl: false,
+      boxZoom: false,
+      dragging: false,
+      doubleClickZoom: false,
+      keyboard: false,
+      scrollWheelZoom: false,
+      tap: false,
+      touchZoom: false,
+      zoomControl: false,
+    });
+  }
+
+  if (cemeteryTileLayer) cemeteryLeaflet.removeLayer(cemeteryTileLayer);
+  cemeteryTileLayer = window.L.tileLayer(tileUrl, {
+    maxNativeZoom: 19,
+    maxZoom: 22,
+  }).addTo(cemeteryLeaflet);
+
+  cemeteryLeafletMap.setAttribute("aria-label", `Leaflet map - ${activeCemetery.name}`);
+  cemeteryLeaflet.fitBounds(
+    [
+      [south, west],
+      [north, east],
+    ],
+    { animate: false, padding: [0, 0] },
+  );
+  window.requestAnimationFrame(() => cemeteryLeaflet.invalidateSize());
   if (mapOverlayNote) mapOverlayNote.textContent = activeCemetery.name;
 }
 
