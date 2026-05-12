@@ -22,6 +22,18 @@ type EntranceLayoutRow = {
 };
 
 function cemeteryFromRow(row: CemeteryRow) {
+  const knownBounds: Record<string, { bbox: number[]; centre: { longitude: number; latitude: number } }> = {
+    "sligo-town-cemetery": {
+      bbox: [-8.4666, 54.2587, -8.4598, 54.2604],
+      centre: { longitude: -8.4647, latitude: 54.25955 }
+    },
+    "strandhill-rd-cemetery": {
+      bbox: [-8.555937, 54.272407, -8.550537, 54.274807],
+      centre: { longitude: -8.553237, latitude: 54.273607 }
+    }
+  };
+  const knownMap = knownBounds[row.slug];
+
   return {
     id: row.slug,
     slug: row.slug,
@@ -34,18 +46,26 @@ function cemeteryFromRow(row: CemeteryRow) {
       name: "Sligo County Council",
       type: "council"
     },
-    map:
-      row.latitude && row.longitude
-        ? {
-            provider: "openstreetmap",
-            layer: "humanitarian",
-            bbox: [row.longitude - 0.0027, row.latitude - 0.0012, row.longitude + 0.0027, row.latitude + 0.0012],
-            centre: {
+    map: {
+      provider: "openstreetmap",
+      layer: "humanitarian",
+      bbox:
+        knownMap?.bbox ??
+        (row.latitude && row.longitude
+          ? [row.longitude - 0.0027, row.latitude - 0.0012, row.longitude + 0.0027, row.latitude + 0.0012]
+          : [-8.4666, 54.2587, -8.4598, 54.2604]),
+      centre:
+        knownMap?.centre ??
+        (row.latitude && row.longitude
+          ? {
               longitude: row.longitude,
               latitude: row.latitude
             }
-          }
-        : null
+          : {
+              longitude: -8.4647,
+              latitude: 54.25955
+            })
+    }
   };
 }
 
@@ -67,6 +87,22 @@ export async function GET() {
     if (entranceLayoutsResult.error) throw entranceLayoutsResult.error;
 
     const cemeteries = ((cemeteriesResult.data ?? []) as CemeteryRow[]).map(cemeteryFromRow);
+    const cemeteryIds = new Set(cemeteries.map((cemetery) => cemetery.id));
+
+    if (!cemeteryIds.has("strandhill-rd-cemetery")) {
+      cemeteries.push(
+        cemeteryFromRow({
+          slug: "strandhill-rd-cemetery",
+          name: "Strandhill Rd Cemetery",
+          town: "",
+          county: "",
+          country: "Ireland",
+          latitude: 54.273607,
+          longitude: -8.553237
+        })
+      );
+    }
+
     const blocks = ((blockLayoutsResult.data ?? []) as BlockLayoutRow[]).flatMap((row) =>
       Array.isArray(row.blocks) ? row.blocks : []
     );
