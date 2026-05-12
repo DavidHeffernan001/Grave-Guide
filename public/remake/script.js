@@ -76,6 +76,9 @@ const plotMarker = document.querySelector("[data-plot-marker]");
 const userMarkerValue = document.querySelector("#userMarkerValue");
 const entranceSelect = document.querySelector("#entranceSelect");
 const entranceQrValue = document.querySelector("#entranceQrValue");
+const addEntranceButton = document.querySelector("#addEntrance");
+const saveEntrancesButton = document.querySelector("#saveEntrances");
+const entranceSaveStatus = document.querySelector("#entranceSaveStatus");
 const resetUserMarkerButton = document.querySelector("#resetUserMarker");
 const headingToggle = document.querySelector("[data-heading-toggle]");
 const headingRotationInput = document.querySelector("#headingRotation");
@@ -451,6 +454,7 @@ function renderEntranceControls() {
   const entrance = cemeteryEntrances.find((item) => item.id === selectedEntranceId) || cemeteryEntrances[0];
   if (!entrance) return;
   entranceQrValue.textContent = `QR: ${entrance.qrCodeSlug}`;
+  entranceSaveStatus.textContent = `${entrance.name} ready. Move marker, then save entrance.`;
 }
 
 function applyEntrance(entranceId) {
@@ -462,6 +466,92 @@ function applyEntrance(entranceId) {
   renderUserMarker();
   renderHeading();
   renderEntranceControls();
+}
+
+function syncSelectedEntrancePosition() {
+  const entrance = cemeteryEntrances.find((item) => item.id === selectedEntranceId);
+  if (!entrance) return;
+  entrance.mapPosition = {
+    x: Number(userPosition.x.toFixed(1)),
+    y: Number(userPosition.y.toFixed(1)),
+  };
+  entrance.defaultHeadingDegrees = headingRotation;
+  const existingIndex = allCemeteryEntrances.findIndex((item) => item.id === entrance.id);
+  if (existingIndex >= 0) {
+    allCemeteryEntrances[existingIndex] = entrance;
+  } else {
+    allCemeteryEntrances.push(entrance);
+  }
+  entranceSaveStatus.textContent = `${entrance.name}: x ${entrance.mapPosition.x}%, y ${entrance.mapPosition.y}% unsaved.`;
+}
+
+function createEntrance(cemetery, name = null, position = null) {
+  const slug = cemetery.slug || slugify(cemetery.name);
+  const baseName = name || `Entrance ${cemeteryEntrances.length + 1}`;
+  const idBase = `${slug}-${slugify(baseName) || `entrance-${Date.now()}`}`;
+  const used = new Set(allCemeteryEntrances.map((entrance) => entrance.id));
+  let id = idBase;
+  let suffix = 2;
+  while (used.has(id)) {
+    id = `${idBase}-${suffix}`;
+    suffix += 1;
+  }
+
+  return {
+    id,
+    cemeteryId: cemetery.id,
+    name: baseName,
+    type: "qr-start-point",
+    mapPosition: position || { x: Number(userPosition.x.toFixed(1)), y: Number(userPosition.y.toFixed(1)) },
+    defaultHeadingDegrees: headingRotation,
+    qrCodeSlug: id,
+  };
+}
+
+function ensureDefaultEntrancesForActiveCemetery() {
+  if (activeCemetery?.id !== "sligo-town-cemetery") return;
+  const hasRoadEntrance = cemeteryEntrances.some((entrance) => entrance.id === "sligo-cemetery-road-gate");
+  if (hasRoadEntrance) return;
+
+  const roadEntrance = {
+    id: "sligo-cemetery-road-gate",
+    cemeteryId: "sligo-town-cemetery",
+    name: "Cemetery Road Gate",
+    type: "qr-start-point",
+    mapPosition: { x: 25.6, y: 36 },
+    defaultHeadingDegrees: -128,
+    qrCodeSlug: "sligo-town-cemetery-cemetery-road-gate",
+  };
+  cemeteryEntrances.push(roadEntrance);
+  allCemeteryEntrances.push(roadEntrance);
+}
+
+async function saveEntranceLayout() {
+  syncSelectedEntrancePosition();
+  entranceSaveStatus.textContent = "Saving entrance...";
+
+  try {
+    const result = await postAdminJson("/api/save-entrances", allCemeteryEntrances);
+    entranceSaveStatus.textContent = result.source === "supabase" ? "Entrance saved to live database." : "Entrance saved in browser fallback.";
+    entranceCountValue.textContent = `${cemeteryEntrances.length} entrance${cemeteryEntrances.length === 1 ? "" : "s"}`;
+  } catch (error) {
+    entranceSaveStatus.textContent = getFriendlySaveError(error);
+    console.error(error);
+  }
+}
+
+function addEntrance() {
+  if (!activeCemetery) return;
+  const entrance = createEntrance(activeCemetery, `Entrance ${cemeteryEntrances.length + 1}`, {
+    x: Math.min(95, Math.max(5, userPosition.x + 4)),
+    y: Math.min(95, Math.max(5, userPosition.y + 4)),
+  });
+  cemeteryEntrances.push(entrance);
+  allCemeteryEntrances.push(entrance);
+  selectedEntranceId = entrance.id;
+  entranceCountValue.textContent = `${cemeteryEntrances.length} entrance${cemeteryEntrances.length === 1 ? "" : "s"}`;
+  applyEntrance(entrance.id);
+  entranceSaveStatus.textContent = `${entrance.name} added. Move marker, then save entrance.`;
 }
 
 function getActiveCalibrationRecord() {
@@ -639,6 +729,7 @@ async function saveCalibrations() {
     const currentData = plotSourceData || (await loadPlotData(activeCemetery));
     const nextData = getPlotDataWithCalibrations(currentData);
     await savePlotData(nextData, activeCalibrationValue);
+    await saveBlockLayout();
   } catch (error) {
     activeCalibrationValue.textContent = getFriendlySaveError(error);
     console.error(error);
@@ -920,12 +1011,12 @@ function ensurePrototypeCalibrationAnchors(data) {
   const andrewPlot = data.plots?.find((plot) => plot.id === "A-01-001");
   if (andrewPlot) {
     andrewPlot.calibrationEnabled = true;
-    andrewPlot.calibratedPositionInBlock = { x: 4.4, y: 21.8 };
+    andrewPlot.calibratedPositionInBlock ||= { x: 4.4, y: 21.8 };
   }
 
   const firstStripBackToBackPlot = data.plots?.find((plot) => plot.id === "A-02-001");
   if (firstStripBackToBackPlot) {
-    firstStripBackToBackPlot.calibratedPositionInBlock = { x: 4.4, y: 21.8 };
+    firstStripBackToBackPlot.calibratedPositionInBlock ||= { x: 4.4, y: 21.8 };
   }
 
   return data;
@@ -1282,6 +1373,7 @@ async function setActiveCemetery(cemeteryId) {
     cemeteryEntrances = [createDefaultEntrance(activeCemetery)];
     allCemeteryEntrances.push(...cemeteryEntrances);
   }
+  ensureDefaultEntrancesForActiveCemetery();
   entranceCountValue.textContent = `${cemeteryEntrances.length} entrance${cemeteryEntrances.length === 1 ? "" : "s"}`;
 
   const activeBlocks = allCemeteryBlocks.filter((block) => block.cemeteryId === activeCemetery.id);
@@ -2006,6 +2098,7 @@ userMarker.addEventListener("pointermove", (event) => {
   const current = getMapPoint(event);
   userPosition.x = Math.min(98, Math.max(2, userMarkerDrag.initial.x + current.x - userMarkerDrag.start.x));
   userPosition.y = Math.min(98, Math.max(2, userMarkerDrag.initial.y + current.y - userMarkerDrag.start.y));
+  syncSelectedEntrancePosition();
   renderUserMarker();
 });
 
@@ -2354,6 +2447,10 @@ resetUserMarkerButton.addEventListener("click", () => {
 entranceSelect.addEventListener("change", () => {
   applyEntrance(entranceSelect.value);
 });
+
+addEntranceButton.addEventListener("click", addEntrance);
+
+saveEntrancesButton.addEventListener("click", saveEntranceLayout);
 
 cemeterySelect.addEventListener("change", async () => {
   cemeteriesConfig.activeCemeteryId = cemeterySelect.value;
