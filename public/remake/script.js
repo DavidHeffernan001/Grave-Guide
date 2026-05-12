@@ -168,6 +168,7 @@ let workspaceMode = "visitor";
 let blockVisualMode = "strips";
 let cemeteryLeaflet = null;
 let cemeteryTileLayer = null;
+let cemeteryLeafletBounds = null;
 const blockStorageKey = "graveguide-sligo-block-layout";
 const adminSaveTokenKey = "graveguide-admin-save-token";
 const referenceMapWidth = 390;
@@ -205,6 +206,8 @@ function setState(state) {
     setMapZoom(Math.max(mapZoom, 1.5));
     window.setTimeout(() => mapTransform.classList.remove("route-zooming"), 950);
   }
+
+  scheduleCemeteryLeafletSync();
 }
 
 function setWorkspaceMode(mode) {
@@ -214,6 +217,7 @@ function setWorkspaceMode(mode) {
     button.classList.toggle("active", button.dataset.modeOption === mode);
   });
   adminModeStatus.textContent = mode === "admin" ? "Admin tools active" : "Visitor preview";
+  scheduleCemeteryLeafletSync();
 }
 
 function getBlock(blockId = selectedBlockId) {
@@ -980,16 +984,25 @@ function renderCemeteryMapFrame() {
     maxZoom: 22,
   }).addTo(cemeteryLeaflet);
 
+  cemeteryLeafletBounds = [
+    [south, west],
+    [north, east],
+  ];
   cemeteryLeafletMap.setAttribute("aria-label", `Leaflet map - ${activeCemetery.name}`);
-  cemeteryLeaflet.fitBounds(
-    [
-      [south, west],
-      [north, east],
-    ],
-    { animate: false, padding: [0, 0] },
-  );
-  window.requestAnimationFrame(() => cemeteryLeaflet.invalidateSize());
+  scheduleCemeteryLeafletSync();
   if (mapOverlayNote) mapOverlayNote.textContent = activeCemetery.name;
+}
+
+function syncCemeteryLeafletMap() {
+  if (!cemeteryLeaflet || !cemeteryLeafletBounds) return;
+  cemeteryLeaflet.invalidateSize(false);
+  cemeteryLeaflet.fitBounds(cemeteryLeafletBounds, { animate: false, padding: [0, 0] });
+}
+
+function scheduleCemeteryLeafletSync() {
+  window.requestAnimationFrame(syncCemeteryLeafletMap);
+  window.setTimeout(syncCemeteryLeafletMap, 120);
+  window.setTimeout(syncCemeteryLeafletMap, 360);
 }
 
 async function saveCemeteryConfig() {
@@ -2158,6 +2171,8 @@ headingRotationInput.addEventListener("input", () => {
   headingRotation = Number(headingRotationInput.value);
   renderHeading();
 });
+
+window.addEventListener("resize", scheduleCemeteryLeafletSync);
 
 allowLocationButton.addEventListener("click", startHighAccuracyLocation);
 
