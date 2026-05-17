@@ -1433,6 +1433,7 @@ function renderSearchResults(query = "") {
   const normalisedQuery = query.trim().toLowerCase();
   if (!normalisedQuery) {
     searchResults.innerHTML = "";
+    panels.search.hidden = true;
     return;
   }
 
@@ -1460,9 +1461,11 @@ function renderSearchResults(query = "") {
       `,
     )
     .join("");
+  panels.search.hidden = false;
 
   if (!matches.length) {
     searchResults.innerHTML = `<p class="empty-results">No matching records</p>`;
+    panels.search.hidden = true;
   }
 }
 
