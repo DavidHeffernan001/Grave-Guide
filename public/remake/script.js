@@ -1686,8 +1686,11 @@ function renderUserMarker() {
 }
 
 function getResponsiveBlockScale() {
-  const { width } = getMapSize();
-  const viewportScale = (width || referenceMapWidth) / referenceMapWidth;
+  const { width, height } = getMapSize();
+  const viewportScale = Math.min(
+    (width || referenceMapWidth) / mobileMapReference.width,
+    (height || mobileMapReference.height) / mobileMapReference.height,
+  );
   return viewportScale;
 }
 
