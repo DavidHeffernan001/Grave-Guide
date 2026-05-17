@@ -1432,7 +1432,7 @@ async function addResident() {
 function renderSearchResults(query = "") {
   const normalisedQuery = query.trim().toLowerCase();
   if (!normalisedQuery) {
-    searchResults.innerHTML = `<p class="empty-results">Start typing a name</p>`;
+    searchResults.innerHTML = "";
     return;
   }
 
