@@ -117,6 +117,19 @@
       },
       "calibrationEnabled": true,
       "isCalibrationAnchor": true
+    },
+    {
+      "id": "A-CAL-08",
+      "blockId": "A",
+      "stripId": "A-S01",
+      "side": "row-2",
+      "plotNumber": 1,
+      "positionInBlock": {
+        "xPercent": 11.9,
+        "yPercent": 25.1
+      },
+      "calibrationEnabled": true,
+      "isCalibrationAnchor": true
     }
   ]
 }

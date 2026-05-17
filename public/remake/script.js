@@ -1117,6 +1117,7 @@ function getCalibrationAnchorSpecs(block) {
       { row: 10, plot: 17, x: 58.2, y: 51.5 },
       { row: 14, plot: 21, x: 80.4, y: 63.4 },
       { row: 15, plot: 9, x: 85.9, y: 27.7 },
+      { row: 2, plot: 1, x: 11.9, y: 25.1 },
     ];
   }
 
@@ -1185,8 +1186,9 @@ function ensureCalibrationAnchorsForBlock(block, data = plotSourceData, options 
   if (!block || !data?.plots) return;
   if (options.rebuild) removeGeneratedCalibrationAnchors(block.id, data);
 
+  const requiredAnchorCount = getCalibrationAnchorSpecs(block).length;
   const existingAnchorCount = data.plots.filter((plot) => plot.blockId === block.id && plot.isCalibrationAnchor).length;
-  if (existingAnchorCount >= 7 && !options.rebuild) return;
+  if (existingAnchorCount >= requiredAnchorCount && !options.rebuild) return;
 
   const existingIds = new Set(data.plots.map((plot) => plot.id));
   getCalibrationAnchorSpecs(block).forEach((spec, index) => {
