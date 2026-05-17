@@ -1416,13 +1416,7 @@ h1 {
 }
 
 .empty-results {
-  padding: 12px;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 750;
-  text-align: center;
+  display: none;
 }
 
 .route-sheet {
